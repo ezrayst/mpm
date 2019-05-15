@@ -453,6 +453,11 @@ std::vector<Eigen::Matrix<double, 3, 1>> mpm::Mesh<Tdim>::particles_vector_data(
         // Fill stresses to the size of dimensions
         for (unsigned i = 0; i < Tdim; ++i) data(i) = pdata(i);
       }
+      // Equivalent plastic deviatoric strains
+      else if (attribute == "epds") {
+        auto pdata = (*pitr)->state_variable("epds");
+        // Fill epds to the size of dimensions
+        for (unsigned i = 0; i < Tdim; ++i) data(i) = pdata;      
       // Error
       else
         throw std::runtime_error("Invalid particle vector data attribute: !");
