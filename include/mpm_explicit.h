@@ -51,11 +51,14 @@ class MPMExplicit : public MPMBase<Tdim> {
   //! Bool nodal tractions
   using mpm::MPMBase<Tdim>::nodal_tractions_;
 
+  unsigned particles_removed_{0};
+
  private:
   //! Boolean to switch between USL and USF
   bool usl_{false};
   //! Pressure smoothing
   bool pressure_smoothing_{false};
+
 
 };  // MPMExplicit class
 }  // namespace mpm

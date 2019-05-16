@@ -1025,7 +1025,7 @@ inline Eigen::Matrix<double, 2, 1> mpm::Cell<2>::transform_real_to_unit_cell(
     }
     // Convergence criteria
     if ((step_length * delta).norm() < Tolerance) {
-      console_->info("NR solution is successful");
+      //console_->info("NR solution is successful");
       break;
     }
     // Check for nan and set to a trial xi
