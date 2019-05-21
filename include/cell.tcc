@@ -837,6 +837,12 @@ inline Eigen::Matrix<double, 2, 1> mpm::Cell<2>::local_coordinates_point_2d(
       }
     }
   }
+
+  if (xi(0) <= (-1. - 0.00001))
+    xi(0) = -1.;
+  else if (xi(1) <= (-1. - 0.00001))
+    xi(1) = -1.;
+
   return xi;
 }
 
