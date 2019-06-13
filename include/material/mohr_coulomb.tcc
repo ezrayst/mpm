@@ -196,7 +196,7 @@ typename mpm::MohrCoulomb<Tdim>::FailureState
   auto yield_type = FailureState::Elastic;
 
   // Check for tension or shear
-  if (yield_tension > 1.E-22 && yield_shear > 1.E-22) {
+  if (yield_tension > 1.E-15 && yield_shear > 1.E-15) {
     double n_phi = (1. + sin(phi)) / (1. - sin(phi));
 
     double sigma_p = tension_cutoff_ * n_phi - 2. * cohesion * sqrt(n_phi);
@@ -209,18 +209,18 @@ typename mpm::MohrCoulomb<Tdim>::FailureState
                alpha_p * (sqrt(2. / 3.) * cos(theta - 4. * M_PI / 3.) * rho +
                           epsilon / sqrt(3.) - sigma_p);
     // Tension
-    if (h > 1.E-22) yield_type = FailureState::Tensile;
+    if (h > 1.E-15) yield_type = FailureState::Tensile;
     // Shear
     else
       yield_type = FailureState::Shear;
   }
 
   // Shear
-  if (yield_tension < 1.E-22 && yield_shear > 1.E-22)
+  if (yield_tension < 1.E-15 && yield_shear > 1.E-15)
     yield_type = FailureState::Shear;
 
   // Tension
-  if (yield_tension > 1.E-22 && yield_shear < 1.E-22)
+  if (yield_tension > 1.E-15 && yield_shear < 1.E-15)
     yield_type = FailureState::Tensile;
 
   return yield_type;
