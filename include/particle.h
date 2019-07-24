@@ -153,6 +153,12 @@ class Particle : public ParticleBase<Tdim> {
     return strain_.col(phase);
   }
 
+  //! Return dstrain of the particle
+  //! \param[in] phase Index corresponding to the phase
+  Eigen::Matrix<double, 6, 1> dstrain(unsigned phase) const override {
+    return dstrain_.col(phase);
+  }
+
   //! Return strain rate of the particle
   //! \param[in] phase Index corresponding to the phase
   Eigen::Matrix<double, 6, 1> strain_rate(unsigned phase) const override {
