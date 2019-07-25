@@ -442,7 +442,7 @@ std::vector<Eigen::Matrix<double, 3, 1>> mpm::Mesh<Tdim>::particles_vector_data(
         for (unsigned i = 0; i < Tdim; ++i) data(i) = pdata(i);
       }
       // Stresses shear
-      if (attribute == "stresses_shear") {
+      else if (attribute == "stresses_shear") {
         auto pdata = (*pitr)->stress(phase);
         // Fill stresses to the size of dimensions
         for (unsigned i = 3; i < 6; ++i) data(i) = pdata(i);
@@ -458,7 +458,8 @@ std::vector<Eigen::Matrix<double, 3, 1>> mpm::Mesh<Tdim>::particles_vector_data(
         auto pdata = (*pitr)->strain(phase);
         // Fill stresses to the size of dimensions
         for (unsigned i = 3; i < 6; ++i) data(i) = pdata(i);
-      }      // Velocities
+      }      
+      // Velocities
       else if (attribute == "velocities") {
         auto pdata = (*pitr)->velocity(phase);
         // Fill stresses to the size of dimensions
