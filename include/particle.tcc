@@ -455,16 +455,16 @@ bool mpm::Particle<Tdim, Tnphases>::compute_stress(unsigned phase) {
       auto stress = material_.at(phase)->compute_stress(
           this->stress_.col(phase), dstrain, this, &state_variables_);
 
-      // Checking normality
+      // Checking NaN
       bool normal_status = true;
       for (unsigned i = 0; i < stress.size(); ++i) {
-        if (!isnormal(stress(i))) {
+        if (isnan(stress(i))) {
           throw std::runtime_error("Stress computed is not normal");
           normal_status = false;
         }   
       }
 
-      // Update stress if it is normal, keep current stress if it is not
+      // Update stress if it is ok, keep current stress if it is NaN
       if (normal_status) {
         this->stress_.col(phase) = stress;  
       }
