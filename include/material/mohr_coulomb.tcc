@@ -492,10 +492,23 @@ Eigen::Matrix<double, 6, 1> mpm::MohrCoulomb<Tdim>::compute_stress(
   if (yield_type_trial == FailureState::Tensile)
     yield = yield_function_trial(0);
   if (yield_type_trial == FailureState::Shear) yield = yield_function_trial(1);
-  double lambda_trial =
+  
+  // Making sure not divided by zero
+  double lambda_trial;
+  if (std::fabs((df_dsigma_trial.transpose() * de_).dot(dp_dsigma_trial.transpose()) +
+       softening_trial) < 1.E-15) {
+    lambda_trial = 0.;
+  } else {
+    lambda_trial =
       yield /
       ((df_dsigma_trial.transpose() * de_).dot(dp_dsigma_trial.transpose()) +
        softening_trial);
+  }
+  // Original
+  // double lambda_trial =
+  //     yield /
+  //     ((df_dsigma_trial.transpose() * de_).dot(dp_dsigma_trial.transpose()) +
+  //      softening_trial);
 
   // Compute stress invariants based on stress input
   this->compute_stress_invariants(stress, state_vars);
@@ -508,8 +521,18 @@ Eigen::Matrix<double, 6, 1> mpm::MohrCoulomb<Tdim>::compute_stress(
   Vector6d dp_dsigma = Vector6d::Zero();
   this->compute_df_dp(yield_type, state_vars, stress, &df_dsigma, &dp_dsigma,
                       &softening);
-  double lambda = df_dsigma.dot(this->de_ * dstrain) /
-                  ((df_dsigma.dot(this->de_ * dp_dsigma)) + softening);
+
+  // Making sure not divided by zero
+  double lambda;
+  if (std::fabs((df_dsigma.dot(this->de_ * dp_dsigma)) + softening) < 1.E-15) {
+    lambda = 0.;  
+  } else {
+    lambda = df_dsigma.dot(this->de_ * dstrain) /
+                  ((df_dsigma.dot(this->de_ * dp_dsigma)) + softening);    
+  }
+  // Original
+  // double lambda = df_dsigma.dot(this->de_ * dstrain) /
+  //                 ((df_dsigma.dot(this->de_ * dp_dsigma)) + softening);
 
   // Compute the correction stress
   double p_multiplier = 0.;
