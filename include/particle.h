@@ -7,6 +7,8 @@
 #include <string>
 #include <vector>
 
+#include <math.h> 
+
 #include "cell.h"
 #include "logger.h"
 #include "particle_base.h"
