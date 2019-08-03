@@ -968,6 +968,11 @@ inline Eigen::Matrix<double, 2, 1> mpm::Cell<2>::transform_real_to_unit_cell(
     geometry_xi = affine_guess;
   }
 
+  // Check if the first trial xi is within the unit cell (-1, 1)
+  for (unsigned i = 0; i < xi.size(); ++i)
+    if (xi(i) < -1.) xi(i) = -0.999999999999;
+    else if (xi(i) > 1.) xi(i) = 0.999999999999;
+
   // Maximum iterations of newton raphson
   const unsigned max_iterations = 100;
 
