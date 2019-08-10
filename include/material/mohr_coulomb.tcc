@@ -408,8 +408,8 @@ void mpm::MohrCoulomb<Tdim>::compute_df_dp(
     double l = r_mw_num;
     double m = r_mw_den;
     double dl_dtheta = -8. * (1. - e_val * e_val) * cos(theta) * sin(theta);
-    double dm_dtheta = (-2. * (1. - e_val * e_val) * sin(theta)) +
-                       (0.5 * (2. * e_val - 1.) * dl_dtheta) / sqrt(sqpart);
+    double dm_dtheta = ((-2. * (1. - e_val * e_val) * sin(theta)) +
+                       (0.5 * (2. * e_val - 1.) * dl_dtheta)) / sqrt(sqpart);
     double drmw_dtheta = ((m * dl_dtheta) - (l * dm_dtheta)) / (m * m);
     double dp_depsilon = tan(psi) / sqrt(3.);
     double dp_drho = 3. * rho * r_mw * r_mw / (2. * sqrt(omega));
@@ -421,25 +421,25 @@ void mpm::MohrCoulomb<Tdim>::compute_df_dp(
     dp_dj = dp_drho * sqrt(2.);
   }
 
-  // compute softening part
-  double dphi_dpstrain = 0.;
-  double dc_dpstrain = 0.;
+  // // compute softening part
+  // double dphi_dpstrain = 0.;
+  // double dc_dpstrain = 0.;
 
-  if (yield_type == FailureState::Shear && epds > epds_peak_ &&
-      epds < epds_residual_) {
-    dphi_dpstrain = (phi_residual_ - phi_peak_) / (epds_residual_ - epds_peak_);
-    dc_dpstrain =
-        (cohesion_residual_ - cohesion_peak_) / (epds_residual_ - epds_peak_);
-  }
+  // if (yield_type == FailureState::Shear && epds > epds_peak_ &&
+  //     epds < epds_residual_) {
+  //   dphi_dpstrain = (phi_residual_ - phi_peak_) / (epds_residual_ - epds_peak_);
+  //   dc_dpstrain =
+  //       (cohesion_residual_ - cohesion_peak_) / (epds_residual_ - epds_peak_);
+  // }
 
-  double df_dphi = sqrt(3. / 2.) * rho *
-                       ((sin(phi) * sin(theta + M_PI / 3.) /
-                         (sqrt(3.) * cos(phi) * cos(phi))) +
-                        (cos(theta + M_PI / 3.) / (3. * cos(phi) * cos(phi)))) +
-                   (epsilon / (sqrt(3.) * cos(phi) * cos(phi)));
-  double df_dc = -1.;
-  (*softening) =
-      (-1.) * ((df_dphi * dphi_dpstrain) + (df_dc * dc_dpstrain)) * dp_dj;
+  // double df_dphi = sqrt(3. / 2.) * rho *
+  //                      ((sin(phi) * sin(theta + M_PI / 3.) /
+  //                        (sqrt(3.) * cos(phi) * cos(phi))) +
+  //                       (cos(theta + M_PI / 3.) / (3. * cos(phi) * cos(phi)))) +
+  //                  (epsilon / (sqrt(3.) * cos(phi) * cos(phi)));
+  // double df_dc = -1.;
+  // (*softening) =
+  //     (-1.) * ((df_dphi * dphi_dpstrain) + (df_dc * dc_dpstrain)) * dp_dj;
 }
 
 //! Compute stress
@@ -451,23 +451,23 @@ Eigen::Matrix<double, 6, 1> mpm::MohrCoulomb<Tdim>::compute_stress(
   // Equivalent plastic deviatoric strain
   const double epds = (*state_vars).at("epds");
 
-  // Update MC parameters using a linear softening rule
-  if ((epds - epds_peak_) > 0. && (epds_residual_ - epds) > 0.) {
-    (*state_vars)["phi"] =
-        phi_residual_ + ((phi_peak_ - phi_residual_) * (epds - epds_residual_) /
-                         (epds_peak_ - epds_residual_));
-    (*state_vars)["psi"] =
-        psi_residual_ + ((psi_peak_ - psi_residual_) * (epds - epds_residual_) /
-                         (epds_peak_ - epds_residual_));
-    (*state_vars)["cohesion"] =
-        cohesion_residual_ +
-        ((cohesion_peak_ - cohesion_residual_) * (epds - epds_residual_) /
-         (epds_peak_ - epds_residual_));
-  } else if ((epds - epds_residual_) >= 0.) {
-    (*state_vars)["phi"] = phi_residual_;
-    (*state_vars)["psi"] = psi_residual_;
-    (*state_vars)["cohesion"] = cohesion_residual_;
-  }
+  // // Update MC parameters using a linear softening rule
+  // if ((epds - epds_peak_) > 0. && (epds_residual_ - epds) > 0.) {
+  //   (*state_vars)["phi"] =
+  //       phi_residual_ + ((phi_peak_ - phi_residual_) * (epds - epds_residual_) /
+  //                        (epds_peak_ - epds_residual_));
+  //   (*state_vars)["psi"] =
+  //       psi_residual_ + ((psi_peak_ - psi_residual_) * (epds - epds_residual_) /
+  //                        (epds_peak_ - epds_residual_));
+  //   (*state_vars)["cohesion"] =
+  //       cohesion_residual_ +
+  //       ((cohesion_peak_ - cohesion_residual_) * (epds - epds_residual_) /
+  //        (epds_peak_ - epds_residual_));
+  // } else if ((epds - epds_residual_) >= 0.) {
+  //   (*state_vars)["phi"] = phi_residual_;
+  //   (*state_vars)["psi"] = psi_residual_;
+  //   (*state_vars)["cohesion"] = cohesion_residual_;
+  // }
 
   // Compute the trial stress
   Vector6d trial_stress = stress + (this->de_ * dstrain);
@@ -493,22 +493,26 @@ Eigen::Matrix<double, 6, 1> mpm::MohrCoulomb<Tdim>::compute_stress(
     yield = yield_function_trial(0);
   if (yield_type_trial == FailureState::Shear) yield = yield_function_trial(1);
   
-  // Making sure not divided by zero
-  double lambda_trial;
-  if (std::fabs((df_dsigma_trial.transpose() * de_).dot(dp_dsigma_trial.transpose()) +
-       softening_trial) < 1.E-15) {
-    lambda_trial = 0.;
-  } else {
-    lambda_trial =
-      yield /
-      ((df_dsigma_trial.transpose() * de_).dot(dp_dsigma_trial.transpose()) +
-       softening_trial);
-  }
+  // // Making sure not divided by zero
+  // double lambda_trial;
+  // if (std::fabs((df_dsigma_trial.transpose() * de_).dot(dp_dsigma_trial.transpose()) +
+  //      softening_trial) < 1.E-15) {
+  //   lambda_trial = 0.;
+  // } else {
+  //   lambda_trial =
+  //     yield /
+  //     ((df_dsigma_trial.transpose() * de_).dot(dp_dsigma_trial.transpose()) +
+  //      softening_trial);
+  // }
   // Original
   // double lambda_trial =
   //     yield /
   //     ((df_dsigma_trial.transpose() * de_).dot(dp_dsigma_trial.transpose()) +
   //      softening_trial);
+
+  double lambda_trial =
+      yield /
+      ((df_dsigma_trial.transpose() * de_).dot(dp_dsigma_trial.transpose()));
 
   // Compute stress invariants based on stress input
   this->compute_stress_invariants(stress, state_vars);
@@ -522,17 +526,20 @@ Eigen::Matrix<double, 6, 1> mpm::MohrCoulomb<Tdim>::compute_stress(
   this->compute_df_dp(yield_type, state_vars, stress, &df_dsigma, &dp_dsigma,
                       &softening);
 
-  // Making sure not divided by zero
-  double lambda;
-  if (std::fabs((df_dsigma.dot(this->de_ * dp_dsigma)) + softening) < 1.E-15) {
-    lambda = 0.;  
-  } else {
-    lambda = df_dsigma.dot(this->de_ * dstrain) /
-                  ((df_dsigma.dot(this->de_ * dp_dsigma)) + softening);    
-  }
+  // // Making sure not divided by zero
+  // double lambda;
+  // if (std::fabs((df_dsigma.dot(this->de_ * dp_dsigma)) + softening) < 1.E-15) {
+  //   lambda = 0.;  
+  // } else {
+  //   lambda = df_dsigma.dot(this->de_ * dstrain) /
+  //                 ((df_dsigma.dot(this->de_ * dp_dsigma)) + softening);    
+  // }
   // Original
   // double lambda = df_dsigma.dot(this->de_ * dstrain) /
   //                 ((df_dsigma.dot(this->de_ * dp_dsigma)) + softening);
+
+  double lambda = df_dsigma.dot(this->de_ * dstrain) /
+                  ((df_dsigma.dot(this->de_ * dp_dsigma)));
 
   // Compute the correction stress
   double p_multiplier = 0.;
