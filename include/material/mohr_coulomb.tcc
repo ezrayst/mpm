@@ -145,8 +145,8 @@ bool mpm::MohrCoulomb<Tdim>::compute_stress_invariants(
   if (fabs((*state_vars).at("j2")) > 0.0)
     theta_val = (3. * sqrt(3.) / 2.) *
                 ((*state_vars).at("j3") / pow((*state_vars).at("j2"), 1.5));
-  if (theta_val > 0.99) theta_val = 1.0;
-  if (theta_val < -0.99) theta_val = -1.0;
+  if (theta_val > 1.0) theta_val = 1.0;
+  if (theta_val < -1.0) theta_val = -1.0;
 
   (*state_vars)["theta"] = (1. / 3.) * acos(theta_val);
   if ((*state_vars).at("theta") > M_PI / 3.) (*state_vars)["theta"] = M_PI / 3.;
@@ -353,7 +353,7 @@ void mpm::MohrCoulomb<Tdim>::compute_df_dp(
   }
 
   // compute dp/dsigma, dp/dj
-  double dp_dj = 0.;
+  double dp_dq = 0.;
   if (yield_type == FailureState::Tensile) {
     double et_value = 0.6;
     double xit = 0.1;
@@ -364,7 +364,7 @@ void mpm::MohrCoulomb<Tdim>::compute_df_dp(
                     (2. * et_value - 1) * sqrt(sqpart);
     double rt_num = 4. * (1 - et_value * et_value) * cos(theta) * cos(theta) +
                     (2. * et_value - 1) * (2. * et_value - 1);
-    if (fabs(rt_den) < 1.e-22) rt_den = 0.001;
+    if (fabs(rt_den) < 1.e-22) rt_den = 0.00001;
     double rt = rt_num / (3. * rt_den);
     double dp_drt = 1.5 * rho * rho * rt /
                     sqrt(xit * xit * tension_cutoff_ * tension_cutoff_ +
@@ -386,18 +386,18 @@ void mpm::MohrCoulomb<Tdim>::compute_df_dp(
     // compute the value of dp/dsigma and dp/dj in tension yield
     (*dp_dsigma) = (dp_depsilon * depsilon_dsigma) + (dp_drho * drho_dsigma) +
                    (dp_drt * drt_dtheta * dtheta_dsigma);
-    dp_dj = dp_drho * sqrt(2.);
+    dp_dq = dp_drho * sqrt(2. / 3.);
   } else {
     double r_mc = (3. - sin(phi)) / (6 * cos(phi));
     double e_val = (3. - sin(phi)) / (3. + sin(phi));
-    if ((e_val - 0.5) <= 0.) e_val = 0.501;
-    if ((e_val - 1.) >= 0.) e_val = 0.999;
+    if (e_val <= 0.5) e_val = 0.5;
+    if (e_val > 1.) e_val = 1.;
     double sqpart = (4. * (1 - e_val * e_val) * pow(cos(theta), 2)) +
                     (5 * e_val * e_val) - (4. * e_val);
     if (sqpart < 0.) sqpart = 0.00001;
     double r_mw_den = (2. * (1 - e_val * e_val) * cos(theta)) +
                       ((2. * e_val - 1) * sqrt(sqpart));
-    if (fabs(r_mw_den) < 1.e-22) r_mw_den = 0.001;
+    if (fabs(r_mw_den) < 1.e-22) r_mw_den = 0.00001;
     double r_mw_num = (4. * (1. - e_val * e_val) * pow(cos(theta), 2)) +
                       pow((2. * e_val - 1.), 2);
     double r_mw = (r_mw_num / r_mw_den) * r_mc;
@@ -418,7 +418,7 @@ void mpm::MohrCoulomb<Tdim>::compute_df_dp(
     // compute the value of dp/dsigma and dp/dj in shear yield
     (*dp_dsigma) = (dp_depsilon * depsilon_dsigma) + (dp_drho * drho_dsigma) +
                    (dp_dtheta * dtheta_dsigma);
-    dp_dj = dp_drho * sqrt(2.);
+    dp_dq = dp_drho * sqrt(2. / 3.);
   }
 
   // // compute softening part
