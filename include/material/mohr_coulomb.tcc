@@ -408,8 +408,8 @@ void mpm::MohrCoulomb<Tdim>::compute_df_dp(
     double l = r_mw_num;
     double m = r_mw_den;
     double dl_dtheta = -8. * (1. - e_val * e_val) * cos(theta) * sin(theta);
-    double dm_dtheta = ((-2. * (1. - e_val * e_val) * sin(theta)) +
-                       (0.5 * (2. * e_val - 1.) * dl_dtheta)) / sqrt(sqpart);
+    double dm_dtheta = (-2. * (1. - e_val * e_val) * sin(theta)) +
+                       (0.5 * (2. * e_val - 1.) * dl_dtheta) / sqrt(sqpart);
     double drmw_dtheta = ((m * dl_dtheta) - (l * dm_dtheta)) / (m * m);
     double dp_depsilon = tan(psi) / sqrt(3.);
     double dp_drho = 3. * rho * r_mw * r_mw / (2. * sqrt(omega));
