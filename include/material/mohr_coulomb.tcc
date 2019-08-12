@@ -410,26 +410,26 @@ void mpm::MohrCoulomb<Tdim>::compute_df_dp(
     dp_dq = dp_drho * sqrt(2. / 3.);
   }
   // Compute softening part
-  double dphi_dpstrain = 0.;
-  double dc_dpstrain = 0.;
-  (*softening) = 0.;
-  if (softening_ && epds > epds_peak_ && epds < epds_residual_) {
-    // Compute dPhi/dPstrain
-    dphi_dpstrain = (phi_residual_ - phi_peak_) / (epds_residual_ - epds_peak_);
-    // Compute dc/dPstrain
-    dc_dpstrain =
-        (cohesion_residual_ - cohesion_peak_) / (epds_residual_ - epds_peak_);
-    // Compute dF/dPstrain
-    double df_dphi =
-        sqrt(3. / 2.) * rho *
-            ((sin(phi) * sin(theta + M_PI / 3.) /
-              (sqrt(3.) * cos(phi) * cos(phi))) +
-             (cos(theta + M_PI / 3.) / (3. * cos(phi) * cos(phi)))) +
-        (epsilon / (sqrt(3.) * cos(phi) * cos(phi)));
-    double df_dc = -1.;
-    (*softening) =
-        (-1.) * ((df_dphi * dphi_dpstrain) + (df_dc * dc_dpstrain)) * dp_dq;
-  }
+  // double dphi_dpstrain = 0.;
+  // double dc_dpstrain = 0.;
+  // (*softening) = 0.;
+  // if (softening_ && epds > epds_peak_ && epds < epds_residual_) {
+  //   // Compute dPhi/dPstrain
+  //   dphi_dpstrain = (phi_residual_ - phi_peak_) / (epds_residual_ - epds_peak_);
+  //   // Compute dc/dPstrain
+  //   dc_dpstrain =
+  //       (cohesion_residual_ - cohesion_peak_) / (epds_residual_ - epds_peak_);
+  //   // Compute dF/dPstrain
+  //   double df_dphi =
+  //       sqrt(3. / 2.) * rho *
+  //           ((sin(phi) * sin(theta + M_PI / 3.) /
+  //             (sqrt(3.) * cos(phi) * cos(phi))) +
+  //            (cos(theta + M_PI / 3.) / (3. * cos(phi) * cos(phi)))) +
+  //       (epsilon / (sqrt(3.) * cos(phi) * cos(phi)));
+  //   double df_dc = -1.;
+  //   (*softening) =
+  //       (-1.) * ((df_dphi * dphi_dpstrain) + (df_dc * dc_dpstrain)) * dp_dq;
+  // }
 }
 
 //! Compute stress
@@ -439,24 +439,24 @@ Eigen::Matrix<double, 6, 1> mpm::MohrCoulomb<Tdim>::compute_stress(
     const ParticleBase<Tdim>* ptr, mpm::dense_map* state_vars) {
   // Get equivalent plastic deviatoric strain
   const double epds = (*state_vars).at("epds");
-  // Update MC parameters using a linear softening rule
-  if (softening_ && (epds - epds_peak_) > 0. && (epds_residual_ - epds) > 0.) {
-    (*state_vars)["phi"] =
-        phi_residual_ + ((phi_peak_ - phi_residual_) * (epds - epds_residual_) /
-                         (epds_peak_ - epds_residual_));
-    (*state_vars)["psi"] =
-        psi_residual_ + ((psi_peak_ - psi_residual_) * (epds - epds_residual_) /
-                         (epds_peak_ - epds_residual_));
-    (*state_vars)["cohesion"] =
-        cohesion_residual_ +
-        ((cohesion_peak_ - cohesion_residual_) * (epds - epds_residual_) /
-         (epds_peak_ - epds_residual_));
-  }
-  if (softening_ && (epds - epds_residual_) >= 0.) {
-    (*state_vars)["phi"] = phi_residual_;
-    (*state_vars)["psi"] = psi_residual_;
-    (*state_vars)["cohesion"] = cohesion_residual_;
-  }
+  // // Update MC parameters using a linear softening rule
+  // if (softening_ && (epds - epds_peak_) > 0. && (epds_residual_ - epds) > 0.) {
+  //   (*state_vars)["phi"] =
+  //       phi_residual_ + ((phi_peak_ - phi_residual_) * (epds - epds_residual_) /
+  //                        (epds_peak_ - epds_residual_));
+  //   (*state_vars)["psi"] =
+  //       psi_residual_ + ((psi_peak_ - psi_residual_) * (epds - epds_residual_) /
+  //                        (epds_peak_ - epds_residual_));
+  //   (*state_vars)["cohesion"] =
+  //       cohesion_residual_ +
+  //       ((cohesion_peak_ - cohesion_residual_) * (epds - epds_residual_) /
+  //        (epds_peak_ - epds_residual_));
+  // }
+  // if (softening_ && (epds - epds_residual_) >= 0.) {
+  //   (*state_vars)["phi"] = phi_residual_;
+  //   (*state_vars)["psi"] = psi_residual_;
+  //   (*state_vars)["cohesion"] = cohesion_residual_;
+  // }
   //-------------------------------------------------------------------------
   // Elastic-predictor stage: compute the trial stress
   Vector6d trial_stress = stress + (this->de_ * dstrain);
@@ -481,7 +481,7 @@ Eigen::Matrix<double, 6, 1> mpm::MohrCoulomb<Tdim>::compute_stress(
   double yield_trial = 0.;
   if (yield_type_trial == FailureState::Tensile)
     yield_trial = yield_function_trial(0);
-  if (yield_type_trial == FailureState::Shear)
+  else if (yield_type_trial == FailureState::Shear)
     yield_trial = yield_function_trial(1);
   double lambda_trial =
       yield_trial /
@@ -495,7 +495,7 @@ Eigen::Matrix<double, 6, 1> mpm::MohrCoulomb<Tdim>::compute_stress(
   // Initialise value of yield function based on stress
   double yield{std::numeric_limits<double>::max()};
   if (yield_type == FailureState::Tensile) yield = yield_function(0);
-  if (yield_type == FailureState::Shear) yield = yield_function(1);
+  else if (yield_type == FailureState::Shear) yield = yield_function(1);
   // Compute plastic multiplier based on stress input (Lambda)
   double softening = 0.;
   Vector6d df_dsigma = Vector6d::Zero();
@@ -518,11 +518,11 @@ Eigen::Matrix<double, 6, 1> mpm::MohrCoulomb<Tdim>::compute_stress(
     p_multiplier = lambda_trial;
     dp_dsigma_final = dp_dsigma_trial;
   }
-  // Check plastic multiplier
-  if (p_multiplier < 0.) {
-    throw std::runtime_error(
-        "Plastic multiplier of Mohr-Coulomb model is negative!");
-  }
+  // // Check plastic multiplier
+  // if (p_multiplier < 0.) {
+  //   throw std::runtime_error(
+  //       "Plastic multiplier of Mohr-Coulomb model is negative!");
+  // }
   // Correct stress back to the yield surface
   Vector6d updated_stress =
       trial_stress - (p_multiplier * this->de_ * dp_dsigma_final);
@@ -533,46 +533,46 @@ Eigen::Matrix<double, 6, 1> mpm::MohrCoulomb<Tdim>::compute_stress(
   // Compute yield function based on updated stress
   yield_type_trial =
       this->compute_yield_state(&yield_function_trial, state_vars);
-  // Define the maximum iteration step
-  int itr_max = 100;
-  // Initialise counter of iteration step
-  int itr = 0;
-  // Correct the stress again
-  while ((yield_function_trial(0) > Tolerance ||
-          yield_function_trial(1) > Tolerance) &&
-         itr < itr_max) {
-    // Compute plastic multiplier based on updated stress
-    this->compute_df_dp(yield_type_trial, state_vars, updated_stress,
-                        &df_dsigma_trial, &dp_dsigma_trial, &softening_trial);
-    if (yield_type_trial == FailureState::Tensile)
-      yield_trial = yield_function_trial(0);
-    if (yield_type_trial == FailureState::Shear)
-      yield_trial = yield_function_trial(1);
-    // Compute plastic multiplier based on updated stress
-    lambda_trial =
-        yield_trial /
-        ((df_dsigma_trial.transpose() * de_).dot(dp_dsigma_trial.transpose()) +
-         softening_trial);
-    // Check plastic multiplier
-    if (p_multiplier < 0.) {
-      throw std::runtime_error(
-          "Plastic multiplier of Mohr-Coulomb model is negative!");
-    }
-    // Correct stress back to the yield surface
-    updated_stress -= (lambda_trial * this->de_ * dp_dsigma_trial);
-    // Compute stress invariants based on updated stress
-    this->compute_stress_invariants(updated_stress, state_vars);
-    // Compute yield function based on updated stress
-    yield_type_trial =
-        this->compute_yield_state(&yield_function_trial, state_vars);
-    // Count the iteration step
-    itr++;
-    // Check plastic multiplier
-    if (itr == itr_max) {
-      throw std::runtime_error(
-          "Iteration step of plastic correction is not enough!");
-    }
-  }
+  // // Define the maximum iteration step
+  // int itr_max = 100;
+  // // Initialise counter of iteration step
+  // int itr = 0;
+  // // Correct the stress again
+  // while ((yield_function_trial(0) > Tolerance ||
+  //         yield_function_trial(1) > Tolerance) &&
+  //        itr < itr_max) {
+  //   // Compute plastic multiplier based on updated stress
+  //   this->compute_df_dp(yield_type_trial, state_vars, updated_stress,
+  //                       &df_dsigma_trial, &dp_dsigma_trial, &softening_trial);
+  //   if (yield_type_trial == FailureState::Tensile)
+  //     yield_trial = yield_function_trial(0);
+  //   else if (yield_type_trial == FailureState::Shear)
+  //     yield_trial = yield_function_trial(1);
+  //   // Compute plastic multiplier based on updated stress
+  //   lambda_trial =
+  //       yield_trial /
+  //       ((df_dsigma_trial.transpose() * de_).dot(dp_dsigma_trial.transpose()) +
+  //        softening_trial);
+  //   // // Check plastic multiplier
+  //   // if (p_multiplier < 0.) {
+  //   //   throw std::runtime_error(
+  //   //       "Plastic multiplier of Mohr-Coulomb model is negative!");
+  //   // }
+  //   // Correct stress back to the yield surface
+  //   updated_stress = trial_stress - (lambda_trial * this->de_ * dp_dsigma_trial);
+  //   // Compute stress invariants based on updated stress
+  //   this->compute_stress_invariants(updated_stress, state_vars);
+  //   // Compute yield function based on updated stress
+  //   yield_type_trial =
+  //       this->compute_yield_state(&yield_function_trial, state_vars);
+  //   // Count the iteration step
+  //   itr++;
+  //   // Check plastic multiplier
+  //   if (itr == itr_max) {
+  //     throw std::runtime_error(
+  //         "Iteration step of plastic correction is not enough!");
+  //   }
+  // }
   // Compute incremental of plastic strain
   Vector6d dstress = updated_stress - stress;
   Vector6d dpstrain = dstrain - (this->de_.inverse()) * dstress;
