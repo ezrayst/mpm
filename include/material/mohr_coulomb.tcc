@@ -146,12 +146,12 @@ bool mpm::MohrCoulomb<Tdim>::compute_stress_invariants(
                 ((*state_vars).at("j3") / pow((*state_vars).at("j2"), 1.5));
   // Check theta value
   if (theta_val > 1.0) theta_val = 1.0;
-  if (theta_val < -1.0) theta_val = -1.0;
+  else if  (theta_val < -1.0) theta_val = -1.0;
   // Compute theta
   (*state_vars)["theta"] = (1. / 3.) * acos(theta_val);
   // Check theta
   if ((*state_vars).at("theta") > M_PI / 3.) (*state_vars)["theta"] = M_PI / 3.;
-  if ((*state_vars).at("theta") < 0.0) (*state_vars)["theta"] = 0.;
+  else if ((*state_vars).at("theta") < 0.0) (*state_vars)["theta"] = 0.;
   // Compute rho
   (*state_vars)["rho"] = sqrt(2 * ((*state_vars).at("j2")));
   // Compute epsilon
@@ -204,10 +204,10 @@ typename mpm::MohrCoulomb<Tdim>::FailureState
       yield_type = FailureState::Shear;
   }
   // Shear failure
-  if ((*yield_function)(0) < Tolerance && (*yield_function)(1) > Tolerance)
+  else if ((*yield_function)(0) < Tolerance && (*yield_function)(1) > Tolerance)
     yield_type = FailureState::Shear;
   // Tension failure
-  if ((*yield_function)(0) > Tolerance && (*yield_function)(1) < Tolerance)
+  else if ((*yield_function)(0) > Tolerance && (*yield_function)(1) < Tolerance)
     yield_type = FailureState::Tensile;
 
   return yield_type;
