@@ -28,26 +28,19 @@ TEST_CASE("Thermodynamics is checked in 3D", "[material][Thermodynamics][3D]") {
 
   // Initialise material
   Json jmaterial;
-  // jmaterial["density"] = 1800.;
-  // jmaterial["youngs_modulus"] = 1.0E+7;
-  // jmaterial["poisson_ratio"] = 0.3;
-  // jmaterial["shear_modulus_constant"] = 2500000.;
-  // jmaterial["shear_modulus_exponent"] = 0.5;
-  // jmaterial["reference_pressure"] = 1000.;
-  // jmaterial["friction_cs"] = 30;
-  // jmaterial["N"] = 0.3;
-  // jmaterial["e_min"] = 0.542;
-  // jmaterial["e_max"] = 1.000;
-  // jmaterial["crushing_pressure"] = 10000000.0;
-  // jmaterial["chi"] = 3.5;
-  // jmaterial["hardening_modulus"] = 200.0;
-  // jmaterial["void_ratio_initial"] = 0.91;
-  // jmaterial["p_image_initial"] = 87014.6;
-  // jmaterial["bond_model"] = false;
-  // jmaterial["p_cohesion_initial"] = 10000.0;
-  // jmaterial["m"] = 0.5;
-
-  double pi_constant = M_PI;
+  jmaterial["density"] = 1800.;
+  jmaterial["B1"] = 0.0098;
+  jmaterial["elastic_bulk_modulus"] = 5500.;
+  jmaterial["xi_modulus_ratio"] = 2. / 3.;
+  jmaterial["cohesion"] = 0.0;
+  jmaterial["m"] = 0.5;
+  jmaterial["eta"] = 1000.;
+  jmaterial["b"] = 0.01;
+  jmaterial["mv"] = 8.5E+3;
+  jmaterial["ms"] = 1.7E+4;
+  jmaterial["lambdav"] = 1.000;
+  jmaterial["alpha"] = 7.0;
+  jmaterial["h"] = 3.5;
 
   //! Check for id = 0
   SECTION("Thermodynamics id is zero") {

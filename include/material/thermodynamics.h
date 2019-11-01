@@ -53,11 +53,11 @@ class Thermodynamics : public Material<Tdim> {
 
   //! Compute stress
   //! \param[in] stress Stress
-  //! \param[in] dstrain Strain
+  //! \param[in] strain Strain
   //! \param[in] particle Constant point to particle base
   //! \param[in] state_vars History-dependent state variables
   //! \retval updated_stress Updated value of stress
-  Vector6d compute_stress(const Vector6d& stress, const Vector6d& dstrain,
+  Vector6d compute_stress(const Vector6d& stress, const Vector6d& strain,
                           const ParticleBase<Tdim>* ptr,
                           mpm::dense_map* state_vars) override;
 
@@ -88,13 +88,15 @@ class Thermodynamics : public Material<Tdim> {
   Matrix6x6 de_;
   //! Plastic stiffness matrix
   Matrix6x6 dp_;
-  //! Density B1
+  //! Density
   double density_{std::numeric_limits<double>::max()};
+  //! Density dependency index B1
+  double B1_{std::numeric_limits<double>::max()};
   //! Elastic bulk modulus B0
   double elastic_bulk_modulus_{std::numeric_limits<double>::max()};
   //! Xi, twice the ratio of shear to bulk modulus
   double xi_modulus_ratio_{std::numeric_limits<double>::max()};
-  //! Cohesion
+  //! Cohesion related parameter
   double cohesion_{std::numeric_limits<double>::max()};
   //! Non-linear index m
   double m_{std::numeric_limits<double>::max()};
