@@ -82,27 +82,42 @@ bool mpm::Thermodynamics<Tdim>::compute_strain_invariants(
   // Compute volumetric strain (first invariant)
   double epse_v = strain(0) + strain(1) + strain(2);
 
-  // Compute second invariant
-  double epse2 = strain(0) * strain(1) + strain(1) * strain(2) +
-                 strain(2) * strain(0) - pow(strain(3), 2.) -
-                 pow(strain(4), 2.) - pow(strain(5), 2.);
-
-  // Compute third invariant
-  double epse3 =
-      strain(0) * strain(1) * strain(2) - strain(0) * pow(strain(4), 2.) -
-      strain(1) * pow(strain(5), 2.) - strain(2) * pow(strain(3), 2.) +
-      2. * strain(3) * strain(4) * strain(5);
-
-  // Store to state variables and zero control
   if (abs(epse_v) > 1.E-15)
     (*state_vars)["epse_v"] = epse_v;
   else
     (*state_vars)["epse_v"] = 1.E-15;
 
+  // Compute deviatoric strain (note in our code we use Engineering Strain)
+  Vector6d deviatoric_strain = Vector6d::Zero();
+  deviatoric_strain(0) = strain(0) - epse_v / 3.;
+  deviatoric_strain(1) = strain(1) - epse_v / 3.;
+  deviatoric_strain(2) = strain(2) - epse_v / 3.;
+  deviatoric_strain(3) = strain(3) / 2.;
+  deviatoric_strain(4) = strain(4) / 2.;
+  deviatoric_strain(5) = strain(5) / 2.;
+
+  // Compute second invariant (check convention 6 or 3)
+  double epse2 =
+      sqrt((pow((deviatoric_strain(0) - deviatoric_strain(1)), 2.) +
+            pow((deviatoric_strain(1) - deviatoric_strain(2)), 2.) +
+            pow((deviatoric_strain(2) - deviatoric_strain(0)), 2.)) /
+               6.0 +
+           pow(deviatoric_strain(3), 2) + pow(deviatoric_strain(4), 2) +
+           pow(deviatoric_strain(5), 2));
+
   if (abs(epse2) > 1.E-15)
     (*state_vars)["epse2"] = epse2;
   else
     (*state_vars)["epse2"] = 1.E-15;
+
+  // Compute third invariant
+  double epse3 =
+      (deviatoric_strain(0) * deviatoric_strain(1) * deviatoric_strain(2)) -
+      (deviatoric_strain(2) * pow(deviatoric_strain(3), 2)) -
+      (deviatoric_strain(0) * pow(deviatoric_strain(4), 2)) -
+      (deviatoric_strain(1) * pow(deviatoric_strain(5), 2)) +
+      ((2 * deviatoric_strain(3) * deviatoric_strain(4) *
+        deviatoric_strain(5)));
 
   if (abs(epse3) > 1.E-15)
     (*state_vars)["epse3"] = epse3;
@@ -166,7 +181,75 @@ Eigen::Matrix<double, 6, 1> mpm::Thermodynamics<Tdim>::compute_stress(
     const Vector6d& stress, const Vector6d& strain,
     const ParticleBase<Tdim>* ptr, mpm::dense_map* state_vars) {
 
-  Vector6d updated_stress;
+  // Get state variables
+  const double epse_v = (*state_vars)["epse_v"];
+  const double epse2 = (*state_vars)["epse2"];
+  const double epse3 = (*state_vars)["epse3"];
+  const double epss = (*state_vars)["epss"];
+  const double sc = (*state_vars)["sc"];
+  double zeta = 2. / 3.;
+  // Need to check zeta definition
 
+  // Compute deviatoric strain (note in our code we use Engineering Strain)
+  Vector6d deviatoric_strain = Vector6d::Zero();
+  deviatoric_strain(0) = strain(0) - epse_v / 3.;
+  deviatoric_strain(1) = strain(1) - epse_v / 3.;
+  deviatoric_strain(2) = strain(2) - epse_v / 3.;
+  deviatoric_strain(3) = strain(3) / 2.;
+  deviatoric_strain(4) = strain(4) / 2.;
+  deviatoric_strain(5) = strain(5) / 2.;
+
+  // Compute derivative in terms of p (p0 in matlab)
+  double p0;
+  double B = elastic_bulk_modulus_ * exp(B1_ * density_);
+  if (epse2 <= 1.E-15)
+    p0 = B * pow((epse_v + cohesion_), m_) * epse_v +
+         B * m_ * pow((epse_v + cohesion_), (m_ - 1.)) * xi_modulus_ratio_ *
+             pow(epse2, 2.);
+  else
+    p0 = B * pow((epse_v + cohesion_), m_) * epse_v +
+         B * m_ * pow((epse_v + cohesion_), (m_ - 1.)) * xi_modulus_ratio_ *
+             pow(epse2, 2.) +
+         B * zeta * (m_ - 1) * pow((epse_v + cohesion_), (m_ - 2.)) *
+             pow(epse3, 5.) / pow(epse2, 2.);
+
+  // Compute cij
+  Vector6d cij = Vector6d::Zero();
+  cij(0) = pow(deviatoric_strain(0), 2.) + pow(deviatoric_strain(3), 2.) +
+           pow(deviatoric_strain(5), 2.) - pow(epse2, 2. / 3.);
+  cij(1) = pow(deviatoric_strain(3), 2.) + pow(deviatoric_strain(1), 2.) +
+           pow(deviatoric_strain(4), 2.) - pow(epse2, 2. / 3.);
+  cij(2) = pow(deviatoric_strain(5), 2.) + pow(deviatoric_strain(4), 2.) +
+           pow(deviatoric_strain(2), 2.) - pow(epse2, 2. / 3.);
+  cij(3) = deviatoric_strain(0) * deviatoric_strain(3) +
+           deviatoric_strain(3) * deviatoric_strain(1) +
+           deviatoric_strain(5) * deviatoric_strain(4);
+  cij(4) = deviatoric_strain(3) * deviatoric_strain(5) +
+           deviatoric_strain(1) * deviatoric_strain(4) +
+           deviatoric_strain(4) * deviatoric_strain(2);
+  cij(5) = deviatoric_strain(5) * deviatoric_strain(0) +
+           deviatoric_strain(4) * deviatoric_strain(3) +
+           deviatoric_strain(2) * deviatoric_strain(5);
+
+  // Compute stress
+  Vector6d updated_stress = Vector6d::Zero();
+  Vector6d one_volumetric;
+  one_volumetric << 1., 1., 1., 0., 0., 0.;
+  Vector6d Eij = Vector6d::Zero();
+
+  if (epse2 <= 1.E-15) {
+
+    Eij = 2 * xi_modulus_ratio_ * deviatoric_strain;
+    updated_stress = (1. - sc) * ((p0 * one_volumetric) +
+                                  B * pow((epse_v + cohesion_), m_) * Eij);
+  } else {
+    Eij = (2 * xi_modulus_ratio_ -
+           2 * zeta * pow(epse3, 5.) / pow(epse2, 4.) / (epse_v + cohesion_)) *
+              deviatoric_strain +
+          (5 * zeta * pow(epse3, 2.) / pow(epse2, 2.) / (epse_v + cohesion_)) *
+              cij;
+    updated_stress = (1. - sc) * ((p0 * one_volumetric) +
+                                  B * pow((epse_v + cohesion_), m_) * Eij);
+  }
   return updated_stress;
 }
