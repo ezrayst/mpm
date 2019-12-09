@@ -166,9 +166,10 @@ bool mpm::Thermodynamics<Tdim>::compute_state_variables(
   const double epss = (*state_vars)["epss"];
 
   // Compute sc
-  double sc =
-      epss / (epss + b_) * (1 - tanh(k * pow(omega_e, 1. / 3.) - 3.)) / 2.;
-
+  // double sc =
+  //     epss / (epss + b_) * (1 - tanh(k * pow(omega_e, 1. / 3.) - 3.)) / 2.;
+  double sc = 0.0;
+  
   // Update state variables
   (*state_vars)["sc"] = sc;
 
@@ -180,6 +181,10 @@ template <unsigned Tdim>
 Eigen::Matrix<double, 6, 1> mpm::Thermodynamics<Tdim>::compute_stress(
     const Vector6d& stress, const Vector6d& strain,
     const ParticleBase<Tdim>* ptr, mpm::dense_map* state_vars) {
+
+  // Compute state and strain invariants
+  this->compute_strain_invariants(strain, state_vars);
+  this->compute_state_variables(stress, strain, state_vars);
 
   // Get state variables
   const double epse_v = (*state_vars)["epse_v"];
@@ -251,5 +256,6 @@ Eigen::Matrix<double, 6, 1> mpm::Thermodynamics<Tdim>::compute_stress(
     updated_stress = (1. - sc) * ((p0 * one_volumetric) +
                                   B * pow((epse_v + cohesion_), m_) * Eij);
   }
+
   return updated_stress;
 }

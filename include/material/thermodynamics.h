@@ -65,7 +65,7 @@ class Thermodynamics : public Material<Tdim> {
   //! \param[in] stress Stress
   //! \param[in] state_vars History-dependent state variables
   //! \retval status of computation of stress invariants
-  bool compute_strain_invariants(const Vector6d& stress,
+  bool compute_strain_invariants(const Vector6d& strain,
                                  mpm::dense_map* state_vars);
 
   //! Compute state variables (void ratio, p_image, e_image, etc)
