@@ -187,47 +187,7 @@ endif()
 if(MPM_BUILD_TESTING)
   SET(test_src
     ${mpm_SOURCE_DIR}/tests/test_main.cc
-    ${mpm_SOURCE_DIR}/tests/cell_container_test.cc
-    ${mpm_SOURCE_DIR}/tests/cell_test.cc
-    ${mpm_SOURCE_DIR}/tests/factory_test.cc
-    ${mpm_SOURCE_DIR}/tests/geometry_test.cc
-    ${mpm_SOURCE_DIR}/tests/elements/hexahedron_element_test.cc
-    ${mpm_SOURCE_DIR}/tests/elements/hexahedron_gimp_element_test.cc
-    ${mpm_SOURCE_DIR}/tests/elements/hexahedron_quadrature_test.cc
-    ${mpm_SOURCE_DIR}/tests/elements/quadrilateral_element_test.cc
-    ${mpm_SOURCE_DIR}/tests/elements/quadrilateral_gimp_element_test.cc
-    ${mpm_SOURCE_DIR}/tests/elements/quadrilateral_quadrature_test.cc
-    ${mpm_SOURCE_DIR}/tests/elements/triangle_element_test.cc
-    ${mpm_SOURCE_DIR}/tests/elements/triangle_quadrature_test.cc
-    ${mpm_SOURCE_DIR}/tests/functions/linear_function_test.cc
-    ${mpm_SOURCE_DIR}/tests/functions/sin_function_test.cc
-    ${mpm_SOURCE_DIR}/tests/graph_test.cc
-    ${mpm_SOURCE_DIR}/tests/io/io_mesh_ascii_test.cc
-    ${mpm_SOURCE_DIR}/tests/io/io_test.cc
-    ${mpm_SOURCE_DIR}/tests/io/vtk_writer_test.cc
-    ${mpm_SOURCE_DIR}/tests/io/write_mesh_particles.cc
-    ${mpm_SOURCE_DIR}/tests/io/write_mesh_particles_unitcell.cc
-    ${mpm_SOURCE_DIR}/tests/material/bingham_test.cc
-    ${mpm_SOURCE_DIR}/tests/material/linear_elastic_test.cc
-    ${mpm_SOURCE_DIR}/tests/material/mohr_coulomb_test.cc
-    ${mpm_SOURCE_DIR}/tests/material/newtonian_test.cc
-    ${mpm_SOURCE_DIR}/tests/material/norsand_test.cc
-    ${mpm_SOURCE_DIR}/tests/mesh_cell_neighbours_test.cc
-    ${mpm_SOURCE_DIR}/tests/mesh_test.cc
-    ${mpm_SOURCE_DIR}/tests/mpi_particle_test.cc
-    ${mpm_SOURCE_DIR}/tests/mpi_transfer_particle_test.cc
-    ${mpm_SOURCE_DIR}/tests/mpm_explicit_usf_test.cc
-    ${mpm_SOURCE_DIR}/tests/mpm_explicit_usf_unitcell_test.cc
-    ${mpm_SOURCE_DIR}/tests/mpm_explicit_usl_test.cc
-    ${mpm_SOURCE_DIR}/tests/mpm_explicit_usl_unitcell_test.cc
-    ${mpm_SOURCE_DIR}/tests/node_container_test.cc
-    ${mpm_SOURCE_DIR}/tests/node_map_test.cc
-    ${mpm_SOURCE_DIR}/tests/node_test.cc
-    ${mpm_SOURCE_DIR}/tests/particle_cell_crossing_test.cc
-    ${mpm_SOURCE_DIR}/tests/particle_container_test.cc
-    ${mpm_SOURCE_DIR}/tests/particle_test.cc
-    ${mpm_SOURCE_DIR}/tests/particle_traction_test.cc
-    ${mpm_SOURCE_DIR}/tests/point_in_cell_test.cc
+    ${mpm_SOURCE_DIR}/tests/material/norsand_triaxial.cc
   )
   if(MPM_BUILD_LIB)
     add_executable(mpmtest ${test_src})
