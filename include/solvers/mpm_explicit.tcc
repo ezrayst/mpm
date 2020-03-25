@@ -309,9 +309,9 @@ bool mpm::MPMExplicit<Tdim>::solve() {
           std::bind(&mpm::NodeBase<Tdim>::status, std::placeholders::_1));
 
     // Iterate over each particle to compute updated position
-    // mesh_->iterate_over_particles(
-    //     std::bind(&mpm::ParticleBase<Tdim>::compute_updated_position,
-    //               std::placeholders::_1, this->dt_, this->velocity_update_));
+    mesh_->iterate_over_particles(
+        std::bind(&mpm::ParticleBase<Tdim>::compute_updated_position,
+                  std::placeholders::_1, this->dt_, this->velocity_update_));
 
     // Apply particle velocity constraints
     mesh_->apply_particle_velocity_constraints();

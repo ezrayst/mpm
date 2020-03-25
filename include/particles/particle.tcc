@@ -720,7 +720,7 @@ void mpm::Particle<Tdim>::compute_updated_position(
     this->velocity_ = nodal_velocity;
 
   // New position  current position + velocity * dt
-  this->coordinates_ += nodal_velocity * dt;
+  // this->coordinates_ += nodal_velocity * dt;
   // Update displacement (displacement is initialized from zero)
   this->displacement_ += nodal_velocity * dt;
 }
