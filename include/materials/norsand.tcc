@@ -416,6 +416,16 @@ void mpm::NorSand<Tdim>::compute_plastic_tensor(const Vector6d& stress,
   Vector6d dtheta_dsigma =
       dtheta_dR * ((dR_dj2 * dj2_dsigma) + (dR_dj3 * dj3_dsigma));
 
+  // std::cout << "j2: " << j2 << '\n';
+  // std::cout << "j3: " << j3 << '\n';
+  // std::cout << "R: " << R << '\n';
+  // std::cout << "dtheta_dR: " << dtheta_dR << '\n';
+  // std::cout << "dR_dj2: " << dR_dj2 << '\n';
+  // std::cout << "dj2_dsigma: " << dj2_dsigma << '\n';
+  // std::cout << "dR_dj3: " << dR_dj3 << '\n';
+  // std::cout << "dj3_dsigma: " << dj3_dsigma << '\n';
+  // std::cout << "dtheta_dsigma: " << dtheta_dsigma << '\n';
+
   if (Tdim == 2) {
     dtheta_dsigma(4) = 0.;
     dtheta_dsigma(5) = 0.;
