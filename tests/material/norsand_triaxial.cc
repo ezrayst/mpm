@@ -42,8 +42,8 @@ TEST_CASE("NorSand is checked in 3D", "[material][NorSand][3D]") {
   jmaterial["chi"] = 3.5;
   jmaterial["hardening_modulus"] = 600.0;
   jmaterial["void_ratio_initial"] = 0.38;
-  jmaterial["p_image_initial"] = 1.5E+6;
-  // jmaterial["p_image_initial"] = 3.0E+6;
+  // jmaterial["p_image_initial"] = 1.5E+6;
+  jmaterial["p_image_initial"] = 3.0E+6;
   // jmaterial["p_image_initial"] = 7.5E+6;
   // jmaterial["p_image_initial"] = 1.5E+7;
   // jmaterial["p_image_initial"] = 2.4E+7;
@@ -69,20 +69,20 @@ TEST_CASE("NorSand is checked in 3D", "[material][NorSand][3D]") {
     stress.setZero();
 
     // 1000 psi (pore pressure 500 psi)
-    stress(0) = -3447000;
-    stress(1) = -3447000;
-    stress(2) = -3447000 - 1;
-    stress(3) = 0;
-    stress(4) = 0;
-    stress(5) = 0;
-
-    // // 1500 psi (pore pressure 500 psi)
-    // stress(0) = -6895000;
-    // stress(1) = -6895000;
-    // stress(2) = -6895000 - 1;
+    // stress(0) = -3447000;
+    // stress(1) = -3447000;
+    // stress(2) = -3447000 - 1;
     // stress(3) = 0;
     // stress(4) = 0;
     // stress(5) = 0;
+
+    // // 1500 psi (pore pressure 500 psi)
+    stress(0) = -6895000;
+    stress(1) = -6895000;
+    stress(2) = -6895000 - 1;
+    stress(3) = 0;
+    stress(4) = 0;
+    stress(5) = 0;
 
     // // 3000 psi (pore pressure 500 psi)
     // stress(0) = -17237000;
