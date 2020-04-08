@@ -2,6 +2,7 @@
 #define MPM_MATERIAL_NORSAND_H_
 
 #include <cmath>
+#include <iostream>
 
 #include "Eigen/Dense"
 
