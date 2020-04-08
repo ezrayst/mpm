@@ -10,7 +10,7 @@
 #include "json.hpp"
 
 #include "cell.h"
-#include "material/material.h"
+#include "materials/material.h"
 #include "node.h"
 #include "particle.h"
 
