@@ -529,7 +529,8 @@ TEST_CASE("Mesh is checked for 2D case", "[mesh][2D]") {
     // Generate material points in cell
     REQUIRE(mesh->nparticles() == 0);
 
-    REQUIRE(mesh->generate_material_points(1, particle_type, mid, -1) == false);
+    REQUIRE(mesh->generate_material_points(1, particle_type, mid, -1, 0) ==
+            false);
     REQUIRE(mesh->nparticles() == 0);
 
     // Add cell 1 and check
@@ -537,33 +538,24 @@ TEST_CASE("Mesh is checked for 2D case", "[mesh][2D]") {
 
     SECTION("Check generating 1 particle / cell") {
       // Generate material points in cell
-      REQUIRE(mesh->generate_material_points(1, particle_type, mid, -1) ==
+      REQUIRE(mesh->generate_material_points(1, particle_type, mid, -1, 0) ==
               true);
       REQUIRE(mesh->nparticles() == 1);
     }
 
     SECTION("Check generating 2 particle / cell") {
-      REQUIRE(mesh->generate_material_points(2, particle_type, mid, -1) ==
+      REQUIRE(mesh->generate_material_points(2, particle_type, mid, -1, 0) ==
               true);
       REQUIRE(mesh->nparticles() == 4);
     }
 
     SECTION("Check generating 3 particle / cell") {
-      REQUIRE(mesh->generate_material_points(3, particle_type, mid, -1) ==
+      REQUIRE(mesh->generate_material_points(3, particle_type, mid, -1, 0) ==
               true);
       REQUIRE(mesh->nparticles() == 9);
     }
 
     SECTION("Check material point generation") {
-      // Generator property
-      Json jgen;
-      jgen["type"] = "gauss";
-      jgen["material_id"] = mid;
-      jgen["cset_id"] = 1;
-      jgen["particle_type"] = "P2D";
-      jgen["check_duplicates"] = false;
-      jgen["nparticles_per_dir"] = 2;
-
       // Assign argc and argv to nput arguments of MPM
       int argc = 7;
       char* argv[] = {(char*)"./mpm",   (char*)"-f", (char*)"./",
@@ -579,10 +571,51 @@ TEST_CASE("Mesh is checked for 2D case", "[mesh][2D]") {
       REQUIRE(mesh->create_cell_sets(cell_sets, true) == true);
 
       REQUIRE(mesh->nparticles() == 0);
-      // Generate
-      REQUIRE(mesh->generate_particles(io, jgen) == true);
-      // Number of particles
-      REQUIRE(mesh->nparticles() == 4);
+
+      SECTION("Gauss point generation") {
+        // Gauss point generation
+        Json jgen;
+        jgen["type"] = "gauss";
+        jgen["material_id"] = mid;
+        jgen["cset_id"] = 1;
+        jgen["particle_type"] = "P2D";
+        jgen["check_duplicates"] = false;
+        jgen["nparticles_per_dir"] = 2;
+        jgen["pset_id"] = 2;
+
+        // Generate
+        REQUIRE(mesh->generate_particles(io, jgen) == true);
+        // Number of particles
+        REQUIRE(mesh->nparticles() == 4);
+      }
+
+      SECTION("Inject points") {
+        // Gauss point generation
+        Json jgen;
+        jgen["type"] = "inject";
+        jgen["material_id"] = mid;
+        jgen["cset_id"] = 1;
+        jgen["particle_type"] = "P2D";
+        jgen["check_duplicates"] = false;
+        jgen["nparticles_per_dir"] = 2;
+        jgen["velocity"] = {0., 0.};
+        jgen["duration"] = {0.1, 0.2};
+
+        // Generate
+        REQUIRE(mesh->generate_particles(io, jgen) == true);
+        // Inject particles
+        REQUIRE_NOTHROW(mesh->inject_particles(0.05));
+        // Number of particles
+        REQUIRE(mesh->nparticles() == 0);
+        // Inject particles
+        REQUIRE_NOTHROW(mesh->inject_particles(0.25));
+        // Number of particles
+        REQUIRE(mesh->nparticles() == 0);
+        // Inject particles
+        REQUIRE_NOTHROW(mesh->inject_particles(0.15));
+        // Number of particles
+        REQUIRE(mesh->nparticles() == 4);
+      }
     }
 
     // Particle 1
@@ -747,7 +780,7 @@ TEST_CASE("Mesh is checked for 2D case", "[mesh][2D]") {
             // Particle type 2D
             const std::string particle_type = "P2D";
             // Create particles from file
-            mesh->create_particles(particle_type, coordinates, mid, false);
+            mesh->create_particles(particle_type, coordinates, mid, 0, false);
             // Check if mesh has added particles
             REQUIRE(mesh->nparticles() == coordinates.size());
 
@@ -806,7 +839,7 @@ TEST_CASE("Mesh is checked for 2D case", "[mesh][2D]") {
             unsigned nparticles = coordinates.size();
             coordinates.clear();
             // This fails with empty list error in particle creation
-            mesh->create_particles(particle_type, coordinates, mid, false);
+            mesh->create_particles(particle_type, coordinates, mid, 0, false);
             REQUIRE(mesh->nparticles() == nparticles);
 
             const unsigned phase = 0;
@@ -814,19 +847,20 @@ TEST_CASE("Mesh is checked for 2D case", "[mesh][2D]") {
             REQUIRE(mesh->particle_coordinates().size() == mesh->nparticles());
             // Particle stresses
             std::string attribute = "stresses";
-            REQUIRE(mesh->particles_vector_data(attribute).size() ==
+            REQUIRE(mesh->template particles_tensor_data<6>(attribute).size() ==
                     mesh->nparticles());
             // Particle strains
             attribute = "strains";
-            REQUIRE(mesh->particles_vector_data(attribute).size() ==
+            REQUIRE(mesh->template particles_tensor_data<6>(attribute).size() ==
                     mesh->nparticles());
             // Particle velocities
             attribute = "velocities";
-            REQUIRE(mesh->particles_vector_data(attribute).size() ==
+            REQUIRE(mesh->template particles_tensor_data<3>(attribute).size() ==
                     mesh->nparticles());
             // Particle invalid data
             attribute = "invalid";
-            REQUIRE(mesh->particles_vector_data(attribute).size() == 0);
+            REQUIRE(mesh->template particles_tensor_data<3>(attribute).size() ==
+                    0);
 
             // State variable
             attribute = "pdstrain";
@@ -1778,7 +1812,8 @@ TEST_CASE("Mesh is checked for 3D case", "[mesh][3D]") {
 
     REQUIRE(mesh->nparticles() == 0);
     // Generate material points in cell
-    REQUIRE(mesh->generate_material_points(1, particle_type, mid, -1) == false);
+    REQUIRE(mesh->generate_material_points(1, particle_type, mid, -1, 0) ==
+            false);
     REQUIRE(mesh->nparticles() == 0);
 
     // Add cell 1 and check
@@ -1786,33 +1821,24 @@ TEST_CASE("Mesh is checked for 3D case", "[mesh][3D]") {
 
     SECTION("Check generating 1 particle / cell") {
       // Generate material points in cell
-      REQUIRE(mesh->generate_material_points(1, particle_type, mid, -1) ==
+      REQUIRE(mesh->generate_material_points(1, particle_type, mid, -1, 0) ==
               true);
       REQUIRE(mesh->nparticles() == 1);
     }
 
     SECTION("Check generating 2 particle / cell") {
-      REQUIRE(mesh->generate_material_points(2, particle_type, mid, -1) ==
+      REQUIRE(mesh->generate_material_points(2, particle_type, mid, -1, 0) ==
               true);
       REQUIRE(mesh->nparticles() == 8);
     }
 
     SECTION("Check generating 3 particle / cell") {
-      REQUIRE(mesh->generate_material_points(3, particle_type, mid, -1) ==
+      REQUIRE(mesh->generate_material_points(3, particle_type, mid, -1, 0) ==
               true);
       REQUIRE(mesh->nparticles() == 27);
     }
 
     SECTION("Check material point generation") {
-      // Generator property
-      Json jgen;
-      jgen["type"] = "gauss";
-      jgen["material_id"] = mid;
-      jgen["cset_id"] = 1;
-      jgen["particle_type"] = "P3D";
-      jgen["check_duplicates"] = false;
-      jgen["nparticles_per_dir"] = 2;
-
       // Assign argc and argv to nput arguments of MPM
       int argc = 7;
       char* argv[] = {(char*)"./mpm",   (char*)"-f", (char*)"./",
@@ -1828,10 +1854,51 @@ TEST_CASE("Mesh is checked for 3D case", "[mesh][3D]") {
       REQUIRE(mesh->create_cell_sets(cell_sets, true) == true);
 
       REQUIRE(mesh->nparticles() == 0);
-      // Generate
-      REQUIRE(mesh->generate_particles(io, jgen) == true);
-      // Number of particles
-      REQUIRE(mesh->nparticles() == 8);
+
+      SECTION("Gauss point generation") {
+        // Gauss point generation
+        Json jgen;
+        jgen["type"] = "gauss";
+        jgen["material_id"] = mid;
+        jgen["pset_id"] = 2;
+        jgen["cset_id"] = 1;
+        jgen["particle_type"] = "P3D";
+        jgen["check_duplicates"] = false;
+        jgen["nparticles_per_dir"] = 2;
+
+        // Generate
+        REQUIRE(mesh->generate_particles(io, jgen) == true);
+        // Number of particles
+        REQUIRE(mesh->nparticles() == 8);
+      }
+
+      SECTION("Inject points") {
+        // Gauss point generation
+        Json jgen;
+        jgen["type"] = "inject";
+        jgen["material_id"] = mid;
+        jgen["cset_id"] = 1;
+        jgen["particle_type"] = "P3D";
+        jgen["check_duplicates"] = false;
+        jgen["nparticles_per_dir"] = 2;
+        jgen["velocity"] = {0., 0.};
+        jgen["duration"] = {0.1, 0.2};
+
+        // Generate
+        REQUIRE(mesh->generate_particles(io, jgen) == true);
+        // Inject particles
+        REQUIRE_NOTHROW(mesh->inject_particles(0.05));
+        // Number of particles
+        REQUIRE(mesh->nparticles() == 0);
+        // Inject particles
+        REQUIRE_NOTHROW(mesh->inject_particles(0.25));
+        // Number of particles
+        REQUIRE(mesh->nparticles() == 0);
+        // Inject particles
+        REQUIRE_NOTHROW(mesh->inject_particles(0.15));
+        // Number of particles
+        REQUIRE(mesh->nparticles() == 8);
+      }
     }
 
     // Particle 1
@@ -2035,7 +2102,7 @@ TEST_CASE("Mesh is checked for 3D case", "[mesh][3D]") {
             // Particle type 3D
             const std::string particle_type = "P3D";
             // Create particles from file
-            mesh->create_particles(particle_type, coordinates, mid, false);
+            mesh->create_particles(particle_type, coordinates, mid, 0, false);
             // Check if mesh has added particles
             REQUIRE(mesh->nparticles() == coordinates.size());
             // Clear coordinates and try creating a list of particles with an
@@ -2043,7 +2110,7 @@ TEST_CASE("Mesh is checked for 3D case", "[mesh][3D]") {
             unsigned nparticles = coordinates.size();
             coordinates.clear();
             // This fails with empty list error in particle creation
-            mesh->create_particles(particle_type, coordinates, mid, false);
+            mesh->create_particles(particle_type, coordinates, mid, 1, false);
             REQUIRE(mesh->nparticles() == nparticles);
 
             // Test assign particles cells again should fail
@@ -2066,19 +2133,20 @@ TEST_CASE("Mesh is checked for 3D case", "[mesh][3D]") {
             REQUIRE(mesh->particle_coordinates().size() == mesh->nparticles());
             // Particle stresses
             std::string attribute = "stresses";
-            REQUIRE(mesh->particles_vector_data(attribute).size() ==
+            REQUIRE(mesh->template particles_tensor_data<6>(attribute).size() ==
                     mesh->nparticles());
             // Particle strains
             attribute = "strains";
-            REQUIRE(mesh->particles_vector_data(attribute).size() ==
+            REQUIRE(mesh->template particles_tensor_data<6>(attribute).size() ==
                     mesh->nparticles());
             // Particle velocities
             attribute = "velocities";
-            REQUIRE(mesh->particles_vector_data(attribute).size() ==
+            REQUIRE(mesh->template particles_tensor_data<3>(attribute).size() ==
                     mesh->nparticles());
             // Particle invalid data
             attribute = "invalid";
-            REQUIRE(mesh->particles_vector_data(attribute).size() == 0);
+            REQUIRE(mesh->template particles_tensor_data<3>(attribute).size() ==
+                    0);
 
             // State variable
             attribute = "pdstrain";

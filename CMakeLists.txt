@@ -124,6 +124,7 @@ endif()
 # VTK
 find_package(VTK)
 if (VTK_FOUND)
+  add_definitions("-DUSE_VTK")
   include_directories(${VTK_INCLUDE_DIRS})
   link_libraries(${VTK_LIBRARIES})
   add_definitions("-DUSE_VTK")
@@ -141,6 +142,7 @@ endif()
 # Include directories
 include_directories(BEFORE
   ${mpm_SOURCE_DIR}/include/
+  ${mpm_SOURCE_DIR}/include/containers/
   ${mpm_SOURCE_DIR}/include/elements/
   ${mpm_SOURCE_DIR}/include/elements/2d
   ${mpm_SOURCE_DIR}/include/elements/3d
@@ -148,7 +150,8 @@ include_directories(BEFORE
   ${mpm_SOURCE_DIR}/include/generators/
   ${mpm_SOURCE_DIR}/include/io/
   ${mpm_SOURCE_DIR}/include/loads_bcs/
-  ${mpm_SOURCE_DIR}/include/material/
+  ${mpm_SOURCE_DIR}/include/materials/
+  ${mpm_SOURCE_DIR}/include/particles/
   ${mpm_SOURCE_DIR}/include/solvers/
   ${mpm_SOURCE_DIR}/external/
   ${mpm_SOURCE_DIR}/tests/include/
@@ -168,8 +171,10 @@ SET(mpm_src
   ${mpm_SOURCE_DIR}/src/io/io_mesh.cc
   ${mpm_SOURCE_DIR}/src/io/logger.cc
   ${mpm_SOURCE_DIR}/src/io/partio_writer.cc
+  ${mpm_SOURCE_DIR}/src/io/vtk_writer.cc
   ${mpm_SOURCE_DIR}/src/material.cc
   ${mpm_SOURCE_DIR}/src/mpm.cc
+  ${mpm_SOURCE_DIR}/src/nodal_properties.cc
   ${mpm_SOURCE_DIR}/src/node.cc
   ${mpm_SOURCE_DIR}/src/particle.cc
   ${mpm_SOURCE_DIR}/src/quadrature.cc
@@ -195,7 +200,7 @@ if(MPM_BUILD_TESTING)
     add_test(NAME mpmtest COMMAND $<TARGET_FILE:mpmtest>)
     enable_testing()
   else()
-    add_executable(mpmtest ${test_src} ${mpm_src} ${mpm_vtk})
+    add_executable(mpmtest ${mpm_src} ${test_src})
     add_test(NAME mpmtest COMMAND $<TARGET_FILE:mpmtest>)
     enable_testing()
   endif()
@@ -204,6 +209,6 @@ endif()
 # Coverage
 find_package(codecov)
 if(ENABLE_COVERAGE)
-  add_executable(mpmtest_coverage ${mpm_vtk} ${mpm_src} ${test_src})
+  add_executable(mpmtest_coverage ${mpm_src} ${test_src})
   add_coverage(mpmtest_coverage)
 endif()

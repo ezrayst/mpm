@@ -127,14 +127,15 @@ bool mpm::MohrCoulomb<Tdim>::compute_stress_invariants(
   if (theta_val > 1.0) theta_val = 1.0;
   if (theta_val < -1.0) theta_val = -1.0;
   // Compute theta
-  (*state_vars)["theta"] = (1. / 3.) * acos(theta_val);
+  (*state_vars).at("theta") = (1. / 3.) * acos(theta_val);
   // Check theta
-  if ((*state_vars).at("theta") > M_PI / 3.) (*state_vars)["theta"] = M_PI / 3.;
-  if ((*state_vars).at("theta") < 0.0) (*state_vars)["theta"] = 0.;
+  if ((*state_vars).at("theta") > M_PI / 3.)
+    (*state_vars).at("theta") = M_PI / 3.;
+  if ((*state_vars).at("theta") < 0.0) (*state_vars).at("theta") = 0.;
   // Compute rho
-  (*state_vars)["rho"] = std::sqrt(2. * (j2));
+  (*state_vars).at("rho") = std::sqrt(2. * (j2));
   // Compute epsilon
-  (*state_vars)["epsilon"] =
+  (*state_vars).at("epsilon") =
       (1. / std::sqrt(3.)) * (stress(0) + stress(1) + stress(2));
 
   return true;
@@ -250,6 +251,9 @@ void mpm::MohrCoulomb<Tdim>::compute_df_dp(
   if (fabs(rho) > std::numeric_limits<int>::epsilon()) {
     // Compute dRho / dSigma
     drho_dsigma = 1. / rho * dev_stress;
+    drho_dsigma(3) *= 2.0;
+    drho_dsigma(4) *= 2.0;
+    drho_dsigma(5) *= 2.0;
     // Compute r value
     r_val = (3. * std::sqrt(6.)) * (j3 / std::pow(rho, 3));
     // Compute dr / dJ2
@@ -263,6 +267,9 @@ void mpm::MohrCoulomb<Tdim>::compute_df_dp(
   const double dtheta_dr = -1 / (3. * std::sqrt(divider));
   // Compute dJ2 / dSigma
   Vector6d dj2_dsigma = dev_stress;
+  dj2_dsigma(3) *= 2.0;
+  dj2_dsigma(4) *= 2.0;
+  dj2_dsigma(5) *= 2.0;
   // Compute dJ3 / dSigma
   Eigen::Matrix<double, 3, 1> dev1;
   dev1(0) = dev_stress(0);
@@ -280,9 +287,9 @@ void mpm::MohrCoulomb<Tdim>::compute_df_dp(
   dj3_dsigma(0) = dev1.dot(dev1) - (1. / 3.) * rho * rho;
   dj3_dsigma(1) = dev2.dot(dev2) - (1. / 3.) * rho * rho;
   dj3_dsigma(2) = dev3.dot(dev3) - (1. / 3.) * rho * rho;
-  dj3_dsigma(3) = dev1.dot(dev2);
-  dj3_dsigma(4) = dev2.dot(dev3);
-  dj3_dsigma(5) = dev1.dot(dev3);
+  dj3_dsigma(3) = 2.0 * dev1.dot(dev2);
+  dj3_dsigma(4) = 2.0 * dev2.dot(dev3);
+  dj3_dsigma(5) = 2.0 * dev1.dot(dev3);
   // Compute dtheta / dsigma
   Vector6d dtheta_dsigma = Vector6d::Zero();
   dtheta_dsigma = dtheta_dr * ((dr_dj2 * dj2_dsigma) + (dr_dj3 * dj3_dsigma));
@@ -409,22 +416,22 @@ Eigen::Matrix<double, 6, 1> mpm::MohrCoulomb<Tdim>::compute_stress(
   // Update MC parameters using a linear softening rule
   if (softening_ && pdstrain > pdstrain_peak_) {
     if (pdstrain < pdstrain_residual_) {
-      (*state_vars)["phi"] =
+      (*state_vars).at("phi") =
           phi_residual_ +
           ((phi_peak_ - phi_residual_) * (pdstrain - pdstrain_residual_) /
            (pdstrain_peak_ - pdstrain_residual_));
-      (*state_vars)["psi"] =
+      (*state_vars).at("psi") =
           psi_residual_ +
           ((psi_peak_ - psi_residual_) * (pdstrain - pdstrain_residual_) /
            (pdstrain_peak_ - pdstrain_residual_));
-      (*state_vars)["cohesion"] =
+      (*state_vars).at("cohesion") =
           cohesion_residual_ + ((cohesion_peak_ - cohesion_residual_) *
                                 (pdstrain - pdstrain_residual_) /
                                 (pdstrain_peak_ - pdstrain_residual_));
     } else {
-      (*state_vars)["phi"] = phi_residual_;
-      (*state_vars)["psi"] = psi_residual_;
-      (*state_vars)["cohesion"] = cohesion_residual_;
+      (*state_vars).at("phi") = phi_residual_;
+      (*state_vars).at("psi") = psi_residual_;
+      (*state_vars).at("cohesion") = cohesion_residual_;
     }
   }
   //-------------------------------------------------------------------------
@@ -531,6 +538,8 @@ Eigen::Matrix<double, 6, 1> mpm::MohrCoulomb<Tdim>::compute_stress(
     // Update incremental of plastic deviatoric strain
     dpdstrain += lambda_trial * dp_dq_trial;
   }
+  // Compute stress invariants based on updated stress
+  this->compute_stress_invariants(updated_stress, state_vars);
   // Update plastic deviatoric strain
   (*state_vars).at("pdstrain") += dpdstrain;
 

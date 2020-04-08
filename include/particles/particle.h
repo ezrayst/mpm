@@ -62,6 +62,14 @@ class Particle : public ParticleBase<Tdim> {
       const HDF5Particle& particle,
       const std::shared_ptr<Material<Tdim>>& material) override;
 
+  //! Assign material history variables
+  //! \param[in] state_vars State variables
+  //! \param[in] material Material associated with the particle
+  //! \retval status Status of cloning HDF5 particle
+  bool assign_material_state_vars(
+      const mpm::dense_map& state_vars,
+      const std::shared_ptr<mpm::Material<Tdim>>& material) override;
+
   //! Retrun particle data as HDF5
   //! \retval particle HDF5 data of the particle
   HDF5Particle hdf5() const override;
@@ -240,10 +248,10 @@ class Particle : public ParticleBase<Tdim> {
                : std::numeric_limits<double>::quiet_NaN();
   }
 
-  //! Return vector data of particles
+  //! Return tensor data of particles
   //! \param[in] property Property string
-  //! \retval vecdata Vector data of particle property
-  Eigen::VectorXd vector_data(const std::string& property) override;
+  //! \retval vecdata Tensor data of particle property
+  Eigen::VectorXd tensor_data(const std::string& property) override;
 
   //! Apply particle velocity constraints
   //! \param[in] dir Direction of particle velocity constraint
@@ -253,6 +261,17 @@ class Particle : public ParticleBase<Tdim> {
 
   //! Assign material id of this particle to nodes
   void append_material_id_to_nodes() const override;
+
+  //! Return the number of neighbour particles
+  unsigned nneighbours() const override { return neighbours_.size(); };
+
+  //! Assign neighbour particles
+  //! \param[in] neighbours set of id of the neighbouring particles
+  //! \retval insertion_status Return the successful addition of a node
+  void assign_neighbours(const std::vector<mpm::Index>& neighbours) override;
+
+  //! Return neighbour ids
+  std::vector<mpm::Index> neighbours() const override { return neighbours_; };
 
  private:
   //! Compute strain rate
@@ -280,6 +299,8 @@ class Particle : public ParticleBase<Tdim> {
   using ParticleBase<Tdim>::material_id_;
   //! State variables
   using ParticleBase<Tdim>::state_variables_;
+  //! Neighbour particles
+  using ParticleBase<Tdim>::neighbours_;
   //! Volumetric mass density (mass / volume)
   double mass_density_;
   //! Mass
