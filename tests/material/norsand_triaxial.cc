@@ -41,8 +41,8 @@ TEST_CASE("NorSand is checked in 3D", "[material][NorSand][3D]") {
   jmaterial["gamma"] = 0.8;
   jmaterial["chi"] = 3.5;
   jmaterial["hardening_modulus"] = 200.0;
-  jmaterial["void_ratio_initial"] = 0.75;
-  // jmaterial["void_ratio_initial"] = 1.20;
+  // jmaterial["void_ratio_initial"] = 0.75;
+  jmaterial["void_ratio_initial"] = 1.20;
   jmaterial["p_image_initial"] = 1.0E+4;
   jmaterial["bond_model"] = false;
   jmaterial["p_cohesion_initial"] = 2.0E+3;
@@ -152,7 +152,7 @@ TEST_CASE("NorSand is checked in 3D", "[material][NorSand][3D]") {
     const double a1 = bulk_modulus_ + (4.0 / 3.0) * G;
     const double a2 = bulk_modulus_ - (2.0 / 3.0) * G;
 
-    // Initialise dstrain (DRAINED)
+    // Initialise dstrain (DRAINED) - Check norsand.tcc
     // unsigned multiplier = 50;
     // mpm::Material<Dim>::Vector6d dstrain;
     // dstrain.setZero();
@@ -163,7 +163,7 @@ TEST_CASE("NorSand is checked in 3D", "[material][NorSand][3D]") {
     // dstrain(4) = 0.0000000 / multiplier;
     // dstrain(5) = 0.0000000 / multiplier;
 
-    // Initialise dstrain (UNDRAINED)
+    // Initialise dstrain (UNDRAINED) - Check norsand.tcc
     unsigned multiplier = 50;
     mpm::Material<Dim>::Vector6d dstrain;
     dstrain.setZero();

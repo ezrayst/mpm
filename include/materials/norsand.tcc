@@ -416,16 +416,6 @@ void mpm::NorSand<Tdim>::compute_plastic_tensor(const Vector6d& stress,
   Vector6d dtheta_dsigma =
       dtheta_dR * ((dR_dj2 * dj2_dsigma) + (dR_dj3 * dj3_dsigma));
 
-  // std::cout << "j2: " << j2 << '\n';
-  // std::cout << "j3: " << j3 << '\n';
-  // std::cout << "R: " << R << '\n';
-  // std::cout << "dtheta_dR: " << dtheta_dR << '\n';
-  // std::cout << "dR_dj2: " << dR_dj2 << '\n';
-  // std::cout << "dj2_dsigma: " << dj2_dsigma << '\n';
-  // std::cout << "dR_dj3: " << dR_dj3 << '\n';
-  // std::cout << "dj3_dsigma: " << dj3_dsigma << '\n';
-  // std::cout << "dtheta_dsigma: " << dtheta_dsigma << '\n';
-
   if (Tdim == 2) {
     dtheta_dsigma(4) = 0.;
     dtheta_dsigma(5) = 0.;
@@ -529,8 +519,8 @@ Eigen::Matrix<double, 6, 1> mpm::NorSand<Tdim>::compute_stress(
   this->compute_elastic_tensor();
 
   // Drained check
-  dstrain_neg(0) = -1 * de_(0, 2) / (de_(0, 0) + de_(0, 1)) * dstrain_neg(2);
-  dstrain_neg(1) = -1 * de_(1, 2) / (de_(1, 0) + de_(1, 1)) * dstrain_neg(2);
+  // dstrain_neg(0) = -1 * de_(0, 2) / (de_(0, 0) + de_(0, 1)) * dstrain_neg(2);
+  // dstrain_neg(1) = -1 * de_(1, 2) / (de_(1, 0) + de_(1, 1)) * dstrain_neg(2);
 
   // Trial stress - elastic
   Vector6d trial_stress = stress_neg + (this->de_ * dstrain_neg);
@@ -562,10 +552,10 @@ Eigen::Matrix<double, 6, 1> mpm::NorSand<Tdim>::compute_stress(
   Matrix6x6 D_matrix = this->de_ - this->dp_;
 
   // Drained check
-  dstrain_neg(0) =
-      -1 * D_matrix(0, 2) / (D_matrix(0, 0) + D_matrix(0, 1)) * dstrain_neg(2);
-  dstrain_neg(1) =
-      -1 * D_matrix(1, 2) / (D_matrix(1, 0) + D_matrix(1, 1)) * dstrain_neg(2);
+  // dstrain_neg(0) =
+  //     -1 * D_matrix(0, 2) / (D_matrix(0, 0) + D_matrix(0, 1)) * dstrain_neg(2);
+  // dstrain_neg(1) =
+  //     -1 * D_matrix(1, 2) / (D_matrix(1, 0) + D_matrix(1, 1)) * dstrain_neg(2);
 
   // Update stress
   Vector6d updated_stress = stress_neg + D_matrix * dstrain_neg;
