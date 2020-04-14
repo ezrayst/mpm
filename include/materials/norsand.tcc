@@ -80,7 +80,7 @@ mpm::dense_map mpm::NorSand<Tdim>::initialise_state_variables() {
       // p_dilation
       {"p_dilation", p_dilation_initial_},
       // Equivalent plastic deviatoric strain
-      {"epds", 0.},
+      {"pdstrain", 0.},
       // Plastic strain components
       {"plastic_strain0", 0.},
       {"plastic_strain1", 0.},
@@ -137,8 +137,8 @@ Eigen::Matrix<double, 6, 1> mpm::NorSand<Tdim>::compute_stress_invariants(
   deviatoric_q = check_low(deviatoric_q);
 
   // Compute the deviatoric stress
-  Vector6d dev_stress = stress;
-  for (unsigned i = 0; i < 3; ++i) dev_stress(i) -= mean_p;
+  Vector6d dev_stress = -1.0 * stress;
+  for (unsigned i = 0; i < 3; ++i) dev_stress(i) -= -1.0 * mean_p;
 
   // Compute J3
   double j3 = (dev_stress(0) * dev_stress(1) * dev_stress(2)) -
@@ -147,18 +147,21 @@ Eigen::Matrix<double, 6, 1> mpm::NorSand<Tdim>::compute_stress_invariants(
                (dev_stress(0) * std::pow(dev_stress(4), 2)) -
                (dev_stress(1) * std::pow(dev_stress(5), 2)));
 
-  // Compute Lode angle value
-  double lode_angle_val = (3. * std::sqrt(3.) / 2.) * (j3 / std::pow(j2, 1.5));
+  // Compute Lode angle value, check for J2
+  double lode_angle_val = 0.0;
+  if (abs(j2) > 1.0E-6) {
+    lode_angle_val = (3. * std::sqrt(3.) / 2.) * (j3 / std::pow(j2, 1.5));
+  }
   if (lode_angle_val > 1.0) lode_angle_val = 1.0;
   if (lode_angle_val < -1.0) lode_angle_val = -1.0;
 
-  // Compute Lode angle (sin convention)
-  double lode_angle = (1. / 3.) * asin(lode_angle_val);
-  if (lode_angle > M_PI / 6.) lode_angle = M_PI / 6.;
-  if (lode_angle < -M_PI / 6.) lode_angle = -M_PI / 6.;
+  // Compute Lode angle (cos convention)
+  double lode_angle = (1. / 3.) * acos(lode_angle_val);
+  if (lode_angle > M_PI / 3.) lode_angle = M_PI / 3.;
+  if (lode_angle < 0.) lode_angle = 0.;
 
-  // Compute M_theta (Jefferies and Shuttle, 2011)
-  const double cos_lode_angle = cos(3. / 2. * lode_angle + M_PI / 4.);
+  // Compute M_theta (Jefferies and Shuttle, 2011 - paper in neg sin lode angle)
+  const double cos_lode_angle = cos(3.0 / 2.0 * lode_angle);
   double M_theta = Mtc_ - std::pow(Mtc_, 2) / (3. + Mtc_) * cos_lode_angle;
 
   // Store to return
@@ -229,7 +232,7 @@ template <unsigned Tdim>
 void mpm::NorSand<Tdim>::compute_p_bond(mpm::dense_map* state_vars) {
 
   // Compute current zeta cohesion
-  double zeta_cohesion = exp(-m_cohesion_ * (*state_vars).at("epds"));
+  double zeta_cohesion = exp(-m_cohesion_ * (*state_vars).at("pdstrain"));
   zeta_cohesion = check_one(zeta_cohesion);
   zeta_cohesion = check_low(zeta_cohesion);
 
@@ -238,7 +241,7 @@ void mpm::NorSand<Tdim>::compute_p_bond(mpm::dense_map* state_vars) {
   (*state_vars).at("p_cohesion") = p_cohesion;
 
   // Compute current zeta dilation
-  double zeta_dilation = exp(-m_dilation_ * (*state_vars).at("epds"));
+  double zeta_dilation = exp(-m_dilation_ * (*state_vars).at("pdstrain"));
   zeta_dilation = check_one(zeta_dilation);
   zeta_dilation = check_low(zeta_dilation);
 
@@ -342,7 +345,7 @@ void mpm::NorSand<Tdim>::compute_plastic_tensor(const Vector6d& stress,
   dq_dsigma(4) = 3. / deviatoric_q * dev_stress(4);
   dq_dsigma(5) = 3. / deviatoric_q * dev_stress(5);
 
-  const double sin_lode_angle = sin(3. / 2. * lode_angle + M_PI / 4.);
+  const double sin_lode_angle = sin(3.0 / 2.0 * lode_angle);
 
   // Compute dF / dM
   double dF_dM = -1.0 / N_ * (mean_p + p_cohesion) *
@@ -352,7 +355,7 @@ void mpm::NorSand<Tdim>::compute_plastic_tensor(const Vector6d& stress,
 
   // Compute dM / dtehta
   const double dM_dtheta =
-      3. / 2. * std::pow(Mtc_, 2) / (3. + Mtc_) * sin_lode_angle;
+      3.0 / 2.0 * std::pow(Mtc_, 2) / (3. + Mtc_) * sin_lode_angle;
 
   // Compute dj2 / dsigma
   Vector6d dj2_dsigma = dev_stress;
@@ -395,20 +398,20 @@ void mpm::NorSand<Tdim>::compute_plastic_tensor(const Vector6d& stress,
   double dR_dj3 = 3.0 / 2.0 * sqrt(3.0);
 
   // Compute derivative of theta in terms of R
-  double dtheta_dR = 1.0 / 3.0;
+  double dtheta_dR = -1.0 / 3.0;
 
   // Update when J2 is non zero
   if (abs(j2) > 1.0E-6) {
     // Update R
-    R = j3 / 2.0 * pow(j2 / 3.0, -1.5);
+    R = j3 / 2.0 * std::pow(j2 / 3.0, -1.5);
     // Update derivatives of R
-    dR_dj2 *= pow(j2, -2.5);
-    dR_dj3 *= pow(j2, -1.5);
+    dR_dj2 *= std::pow(j2, -2.5);
+    dR_dj3 *= std::pow(j2, -1.5);
     // Update derivative of theta in terms of R, check for sqrt of zero
-    if (abs(1 - pow(R, 2.0)) < 1.0E-6) {
-      dtheta_dR = 1.0 / 3.0 / sqrt(1.0E-6);
+    if (abs(1 - R * R) < 1.0E-6) {
+      dtheta_dR = -1.0 / 3.0 / sqrt(1.0E-6);
     } else {
-      dtheta_dR = 1.0 / 3.0 / sqrt(1 - pow(R, 2.0));
+      dtheta_dR = -1.0 / 3.0 / sqrt(1 - R * R);
     }
   }
 
@@ -459,7 +462,7 @@ void mpm::NorSand<Tdim>::compute_plastic_tensor(const Vector6d& stress,
 
     const double dpcohesion_depsd =
         -p_cohesion_initial_ * m_cohesion_ *
-        exp(-m_cohesion_ * (*state_vars).at("epds"));
+        exp(-m_cohesion_ * (*state_vars).at("pdstrain"));
 
     // Derivatives in respect to p_dilation
     const double dF_dpdilation =
@@ -469,7 +472,7 @@ void mpm::NorSand<Tdim>::compute_plastic_tensor(const Vector6d& stress,
 
     const double dpdilation_depsd =
         -p_dilation_initial_ * m_dilation_ *
-        exp(-m_dilation_ * (*state_vars).at("epds"));
+        exp(-m_dilation_ * (*state_vars).at("pdstrain"));
 
     hardening_term = dF_dpi * dpi_depsd * dF_dsigma_deviatoric +
                      dF_dpcohesion * dpcohesion_depsd * dF_dsigma_deviatoric +
@@ -578,7 +581,7 @@ Eigen::Matrix<double, 6, 1> mpm::NorSand<Tdim>::compute_stress(
   (*state_vars).at("plastic_strain5") += dpstrain(5);
 
   // Update equivalent plastic deviatoric strain
-  (*state_vars).at("epds") =
+  (*state_vars).at("pdstrain") =
       std::sqrt(2. / 9. *
                     (std::pow(((*state_vars).at("plastic_strain0") -
                                (*state_vars).at("plastic_strain1")),
