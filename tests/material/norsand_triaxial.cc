@@ -41,10 +41,10 @@ TEST_CASE("NorSand is checked in 3D", "[material][NorSand][3D]") {
   jmaterial["gamma"] = 0.8;
   jmaterial["chi"] = 3.5;
   jmaterial["hardening_modulus"] = 200.0;
-  // jmaterial["void_ratio_initial"] = 0.75;
-  jmaterial["void_ratio_initial"] = 1.20;
+  jmaterial["void_ratio_initial"] = 0.75;
+  // jmaterial["void_ratio_initial"] = 1.20;
   jmaterial["p_image_initial"] = 1.0E+4;
-  jmaterial["bond_model"] = true;
+  jmaterial["bond_model"] = false;
   jmaterial["p_cohesion_initial"] = 2.0E+3;
   jmaterial["p_dilation_initial"] = 5.0E+3;
   jmaterial["m_cohesion"] = 2.0;
