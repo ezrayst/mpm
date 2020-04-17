@@ -153,26 +153,26 @@ TEST_CASE("NorSand is checked in 3D", "[material][NorSand][3D]") {
     const double a2 = bulk_modulus_ - (2.0 / 3.0) * G;
 
     // Initialise dstrain (DRAINED) - Check norsand.tcc
-    // unsigned multiplier = 50;
-    // mpm::Material<Dim>::Vector6d dstrain;
-    // dstrain.setZero();
-    // dstrain(2) = -0.0005 / multiplier;
-    // dstrain(0) = -1 * dstrain(2) * a2 / (a2 + a1);
-    // dstrain(1) = -1 * dstrain(2) * a2 / (a2 + a1);
-    // dstrain(3) = 0.0000000 / multiplier;
-    // dstrain(4) = 0.0000000 / multiplier;
-    // dstrain(5) = 0.0000000 / multiplier;
-
-    // Initialise dstrain (UNDRAINED) - Check norsand.tcc
     unsigned multiplier = 50;
     mpm::Material<Dim>::Vector6d dstrain;
     dstrain.setZero();
     dstrain(2) = -0.0005 / multiplier;
-    dstrain(0) = -0.5 * dstrain(2);
-    dstrain(1) = -0.5 * dstrain(2);
+    dstrain(0) = -1 * dstrain(2) * a2 / (a2 + a1);
+    dstrain(1) = -1 * dstrain(2) * a2 / (a2 + a1);
     dstrain(3) = 0.0000000 / multiplier;
     dstrain(4) = 0.0000000 / multiplier;
     dstrain(5) = 0.0000000 / multiplier;
+
+    // Initialise dstrain (UNDRAINED) - Check norsand.tcc
+    // unsigned multiplier = 50;
+    // mpm::Material<Dim>::Vector6d dstrain;
+    // dstrain.setZero();
+    // dstrain(2) = -0.0005 / multiplier;
+    // dstrain(0) = -0.5 * dstrain(2);
+    // dstrain(1) = -0.5 * dstrain(2);
+    // dstrain(3) = 0.0000000 / multiplier;
+    // dstrain(4) = 0.0000000 / multiplier;
+    // dstrain(5) = 0.0000000 / multiplier;
 
     // // Castlegate
     // unsigned multiplier = 10;
