@@ -194,3 +194,38 @@ inline Eigen::VectorXd mpm::QuadrilateralQuadrature<2, 16>::weights() const {
 
   return weights;
 }
+
+// Compute Gauss weights of a given set of points
+template <unsigned Tdim, unsigned Tnquadratures>
+Eigen::VectorXd
+    mpm::QuadrilateralQuadrature<Tdim, Tnquadratures>::compute_gauss_weights(
+        const std::vector<Eigen::Matrix<double, Tdim, 1>>& xi,
+        const unsigned porder) const {
+
+  // number of monomials
+  unsigned nterms = pow((porder + 1), Tdim);
+  if (nterms != Tnquadratures)
+    throw std::runtime_error(
+        "Invalid polynomial order, cannot compute gauss weights");
+
+  // Check minimum number of quadrature points
+  if (xi.size() < nterms)
+    throw std::runtime_error(
+        "Number of quadrature points is less than minimum required");
+
+  // Fill 'A' matrix with monomials
+  Eigen::MatrixXd polyA(nterms, xi.size());
+  int p = 0;
+  for (auto& local_coord : xi) {
+    polyA.col(p) =
+        mpm::Polynomial::evaluate_monomials<Tdim>(porder, local_coord);
+    ++p;
+  }
+  // transpose of polynomial 'A' matrix
+  Eigen::MatrixXd polyA_trans = polyA.transpose();
+
+  // return gauss weights
+  return (polyA_trans * ((polyA * polyA_trans).inverse()) *
+          mpm::Polynomial::DefiniteIntegral<
+              Tdim, Tnquadratures>::Square_Definite_Integrals);
+}

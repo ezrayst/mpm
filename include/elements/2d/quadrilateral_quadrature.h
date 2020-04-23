@@ -32,6 +32,13 @@ class QuadrilateralQuadrature : public Quadrature<Tdim> {
   //! Return weights
   //! \param[out] weights Weights for quadrature points
   Eigen::VectorXd weights() const override;
+
+  //! Compute gauss weights
+  //! \param[in] xi Reference coordinates of quadrature points
+  //! \param[in] porder Order of integral polynomial
+  Eigen::VectorXd compute_gauss_weights(
+      const std::vector<Eigen::Matrix<double, Tdim, 1>>& xi,
+      const unsigned porder) const override;
 };
 
 }  // namespace mpm
