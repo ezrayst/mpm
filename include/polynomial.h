@@ -16,9 +16,14 @@ namespace Polynomial {
 //! tparam Tdim Dimension
 //! tparam Tporder Polynomial order
 template <unsigned Tdim, unsigned Tporder, unsigned Tnterms>
-struct IntegralBase {
-  virtual Eigen::Matrix<double, Tnterms, 1> definite_integrals() const = 0;
+struct DefiniteIntegral {
+  //! Definite integrals of a polynomial over unit square/cube
+  //! tparam Tdim Dimension
+  //! tparam Tnterms Number of monomials
   static const Eigen::Matrix<double, Tnterms, 1> Square_Definite_Integrals;
+  //! Definite integrals of a polynomial over unit triangle/tetrahedron
+  //! tparam Tdim Dimension
+  //! tparam Tnterms Number of monomials
   static const Eigen::Matrix<double, Tnterms, 1> Tri_Definite_Integrals;
 };
 
