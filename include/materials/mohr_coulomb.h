@@ -102,6 +102,10 @@ class MohrCoulomb : public Material<Tdim> {
   double youngs_modulus_{std::numeric_limits<double>::max()};
   //! kGe elastic shear modulus parameter
   double kge_{std::numeric_limits<double>::max()};
+  //! Shear modulus
+  double shear_modulus_{std::numeric_limits<double>::max()};
+  //! Bulk modulus
+  double bulk_modulus_{std::numeric_limits<double>::max()};
   //! Reference pressure
   double pressure_reference_{std::numeric_limits<double>::max()};
   //! Poisson ratio
