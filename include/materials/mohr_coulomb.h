@@ -92,7 +92,7 @@ class MohrCoulomb : public Material<Tdim> {
 
  private:
   //! Compute elastic tensor
-  bool compute_elastic_tensor();
+  bool compute_elastic_tensor(const Vector6d& stress);
 
   //! Elastic stiffness matrix
   Matrix6x6 de_;
@@ -100,10 +100,10 @@ class MohrCoulomb : public Material<Tdim> {
   double density_{std::numeric_limits<double>::max()};
   //! Youngs modulus
   double youngs_modulus_{std::numeric_limits<double>::max()};
-  //! Bulk modulus
-  double bulk_modulus_{std::numeric_limits<double>::max()};
-  //! Shear modulus
-  double shear_modulus_{std::numeric_limits<double>::max()};
+  //! kGe elastic shear modulus parameter
+  double kge_{std::numeric_limits<double>::max()};
+  //! Reference pressure
+  double pressure_reference_{std::numeric_limits<double>::max()};
   //! Poisson ratio
   double poisson_ratio_{std::numeric_limits<double>::max()};
   //! Maximum friction angle phi

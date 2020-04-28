@@ -10,6 +10,11 @@ mpm::MohrCoulomb<Tdim>::MohrCoulomb(unsigned id,
     // Young's modulus
     youngs_modulus_ =
         material_properties.at("youngs_modulus").template get<double>();
+    // kGe elastic shear modulus parameter
+    kge_ = material_properties.at("kge").template get<double>();
+    // Reference pressure
+    pressure_reference_ =
+        material_properties.at("pressure_reference").template get<double>();
     // Poisson ratio
     poisson_ratio_ =
         material_properties.at("poisson_ratio").template get<double>();
@@ -41,12 +46,7 @@ mpm::MohrCoulomb<Tdim>::MohrCoulomb(unsigned id,
         material_properties.at("tension_cutoff").template get<double>();
     // Properties
     properties_ = material_properties;
-    // Bulk modulus
-    bulk_modulus_ = youngs_modulus_ / (3.0 * (1. - 2. * poisson_ratio_));
-    // Shear modulus
-    shear_modulus_ = youngs_modulus_ / (2.0 * (1 + poisson_ratio_));
-    // Set elastic tensor
-    this->compute_elastic_tensor();
+
   } catch (std::exception& except) {
     console_->error("Material parameter not set: {}\n", except.what());
   }
@@ -78,11 +78,12 @@ mpm::dense_map mpm::MohrCoulomb<Tdim>::initialise_state_variables() {
 
 //! Compute elastic tensor
 template <unsigned Tdim>
-bool mpm::MohrCoulomb<Tdim>::compute_elastic_tensor() {
+bool mpm::MohrCoulomb<Tdim>::compute_elastic_tensor(const Vector6d& stress) {
   // Shear modulus
-  const double G = shear_modulus_;
-  const double a1 = bulk_modulus_ + (4.0 / 3.0) * G;
-  const double a2 = bulk_modulus_ - (2.0 / 3.0) * G;
+  const double G = kge_ * pressure_reference_ * std::pow(std::abs(stress(0) + stress(1) + stress(2)) / (3. * pressure_reference_), 0.5);
+  const double K = G * 2. * (1. + poisson_ratio_) / (3. * (1. - 2. * poisson_ratio_));
+  const double a1 = K + (4.0 / 3.0) * G;
+  const double a2 = K - (2.0 / 3.0) * G;
   // compute elastic stiffness matrix
   // clang-format off
   de_(0,0)=a1;    de_(0,1)=a2;    de_(0,2)=a2;    de_(0,3)=0;    de_(0,4)=0;    de_(0,5)=0;
@@ -411,6 +412,10 @@ template <unsigned Tdim>
 Eigen::Matrix<double, 6, 1> mpm::MohrCoulomb<Tdim>::compute_stress(
     const Vector6d& stress, const Vector6d& dstrain,
     const ParticleBase<Tdim>* ptr, mpm::dense_map* state_vars) {
+
+  // Compute elastic tensor
+  this->compute_elastic_tensor(stress);
+
   // Get equivalent plastic deviatoric strain
   const double pdstrain = (*state_vars).at("pdstrain");
   // Update MC parameters using a linear softening rule
