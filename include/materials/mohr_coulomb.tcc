@@ -351,6 +351,30 @@ Eigen::Matrix<double, 6, 1> mpm::MohrCoulomb<Tdim>::compute_stress(
   // Compute elastic tensor
   this->compute_elastic_tensor();
 
+  // Get equivalent plastic deviatoric strain
+  const double pdstrain = (*state_vars).at("pdstrain");
+  // Update MC parameters using a linear softening rule
+  if (softening_ && pdstrain > pdstrain_peak_) {
+    if (pdstrain < pdstrain_residual_) {
+      (*state_vars).at("phi") =
+          phi_residual_ +
+          ((phi_peak_ - phi_residual_) * (pdstrain - pdstrain_residual_) /
+           (pdstrain_peak_ - pdstrain_residual_));
+      (*state_vars).at("psi") =
+          psi_residual_ +
+          ((psi_peak_ - psi_residual_) * (pdstrain - pdstrain_residual_) /
+           (pdstrain_peak_ - pdstrain_residual_));
+      (*state_vars).at("cohesion") =
+          cohesion_residual_ + ((cohesion_peak_ - cohesion_residual_) *
+                                (pdstrain - pdstrain_residual_) /
+                                (pdstrain_peak_ - pdstrain_residual_));
+    } else {
+      (*state_vars).at("phi") = phi_residual_;
+      (*state_vars).at("psi") = psi_residual_;
+      (*state_vars).at("cohesion") = cohesion_residual_;
+    }
+  }
+
   //-------------------------------------------------------------------------
   // Elastic-predictor stage: compute the trial stress
   Vector6d trial_stress = stress + (this->de_ * dstrain);
