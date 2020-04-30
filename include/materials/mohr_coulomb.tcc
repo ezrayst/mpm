@@ -336,17 +336,22 @@ Eigen::Matrix<double, 6, 1> mpm::MohrCoulomb<Tdim>::compute_stress(
   // Compute initial effective stress for first step
   if ((*state_vars).at("initial_sigmam") == std::numeric_limits<double>::max()) {
     (*state_vars).at("initial_sigmam") = std::abs((stress(0) + stress(1) + stress(2)) / 3.);
-    this->shear_modulus_ = 0.7 * kge_ * pressure_reference_ * std::pow((*state_vars).at("initial_sigmam") / pressure_reference_, 0.5);
-    this->bulk_modulus_ = shear_modulus_ * 2. * (1. + poisson_ratio_) / (3. * (1. - 2. * poisson_ratio_)); 
   }
   if ((*state_vars).at("initial_sigmav") == std::numeric_limits<double>::max()) {
-    (*state_vars).at("initial_sigmav") = std::abs(stress(1));
-    // Compute residual strength from SPT N value
-    if (spt_n_ != std::numeric_limits<double>::max()) {
-      cohesion_peak_ = 47.880208 * std::exp(0.1407 * spt_n_ + 4.2399 * std::pow((*state_vars).at("initial_sigmav") / pressure_reference_, 0.12));
-    ( *state_vars).at("cohesion") =cohesion_peak_;
-    }    
+    (*state_vars).at("initial_sigmav") = std::abs(stress(1)); 
   }
+
+  this->shear_modulus_ = 0.7 * kge_ * pressure_reference_ * std::pow((*state_vars).at("initial_sigmam") / pressure_reference_, 0.5);
+  this->bulk_modulus_ = shear_modulus_ * 2. * (1. + poisson_ratio_) / (3. * (1. - 2. * poisson_ratio_)); 
+  
+  // Compute residual strength from SPT N value
+  if (spt_n_ != std::numeric_limits<double>::max()) {
+    cohesion_peak_ = 47.880208 * std::exp(0.1407 * spt_n_ + 4.2399 * std::pow((*state_vars).at("initial_sigmav") / pressure_reference_, 0.12));
+    (*state_vars).at("cohesion") = cohesion_peak_;
+  }  
+
+  // std::cout << "Sigmam: " << (*state_vars).at("initial_sigmam") << "\t Sigmav: " << (*state_vars).at("initial_sigmav") << '\n';
+  // std::cout << "K: " << bulk_modulus_ << "\t G: " << shear_modulus_ << "\t coh: " << (*state_vars).at("cohesion") << '\n';
 
   // Compute elastic tensor
   this->compute_elastic_tensor();
@@ -374,7 +379,6 @@ Eigen::Matrix<double, 6, 1> mpm::MohrCoulomb<Tdim>::compute_stress(
       (*state_vars).at("cohesion") = cohesion_residual_;
     }
   }
-
   //-------------------------------------------------------------------------
   // Elastic-predictor stage: compute the trial stress
   Vector6d trial_stress = stress + (this->de_ * dstrain);
