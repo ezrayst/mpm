@@ -12,9 +12,6 @@ mpm::MohrCoulomb<Tdim>::MohrCoulomb(unsigned id,
     // SPT N value
     if (material_properties.find("spt_n") != material_properties.end())
       spt_n_ = material_properties.at("spt_n").template get<double>();
-    // Reference pressure
-    pressure_reference_ =
-        material_properties.at("pressure_reference").template get<double>();
     // Poisson ratio
     poisson_ratio_ =
         material_properties.at("poisson_ratio").template get<double>();

@@ -110,7 +110,7 @@ class MohrCoulomb : public Material<Tdim> {
   //! Bulk modulus
   double bulk_modulus_{std::numeric_limits<double>::max()};
   //! Reference pressure
-  double pressure_reference_{std::numeric_limits<double>::max()};
+  double pressure_reference_{100000.};
   //! Poisson ratio
   double poisson_ratio_{std::numeric_limits<double>::max()};
   //! Maximum friction angle phi
