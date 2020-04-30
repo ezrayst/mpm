@@ -7,11 +7,11 @@ mpm::MohrCoulomb<Tdim>::MohrCoulomb(unsigned id,
     // General parameters
     // Density
     density_ = material_properties.at("density").template get<double>();
-    // Young's modulus
-    youngs_modulus_ =
-        material_properties.at("youngs_modulus").template get<double>();
     // kGe elastic shear modulus parameter
     kge_ = material_properties.at("kge").template get<double>();
+    // SPT N value
+    if (material_properties.find("spt_n") != material_properties.end())
+      spt_n_ = material_properties.at("spt_n").template get<double>();
     // Reference pressure
     pressure_reference_ =
         material_properties.at("pressure_reference").template get<double>();
@@ -70,7 +70,11 @@ mpm::dense_map mpm::MohrCoulomb<Tdim>::initialise_state_variables() {
                                // Theta
                                {"theta", 0.},
                                // Plastic deviatoric strain
-                               {"pdstrain", 0.}};
+                               {"pdstrain", 0.},
+                               // Initial mean pressure
+                               {"initial_sigmam", std::numeric_limits<double>::max()},
+                               // Initial vertical stress
+                               {"initial_sigmav", std::numeric_limits<double>::max()}};
   return state_vars;
 }
 
@@ -78,15 +82,15 @@ mpm::dense_map mpm::MohrCoulomb<Tdim>::initialise_state_variables() {
 template <unsigned Tdim>
 std::vector<std::string> mpm::MohrCoulomb<Tdim>::state_variables() const {
   const std::vector<std::string> state_vars = {
-      "phi", "psi", "cohesion", "j3", "epsilon", "rho", "theta", "pdstrain"};
+      "phi", "psi", "cohesion", "j3", "epsilon", "rho", "theta", "pdstrain", "initial_sigmam", "initial_sigmav"};
   return state_vars;
 }
 
 //! Compute elastic tensor
 template <unsigned Tdim>
-bool mpm::MohrCoulomb<Tdim>::compute_elastic_tensor(const Vector6d& stress) {
+bool mpm::MohrCoulomb<Tdim>::compute_elastic_tensor(mpm::dense_map* state_vars) {
   // Shear modulus
-  const double G = kge_ * pressure_reference_ * std::pow(std::abs(stress(0) + stress(1) + stress(2)) / (3. * pressure_reference_), 0.5);
+  const double G = 0.7 * kge_ * pressure_reference_ * std::pow((*state_vars).at("initial_sigmam") / pressure_reference_, 0.5);
   const double K = G * 2. * (1. + poisson_ratio_) / (3. * (1. - 2. * poisson_ratio_));
   const double a1 = K + (4.0 / 3.0) * G;
   const double a2 = K - (2.0 / 3.0) * G;
@@ -332,32 +336,21 @@ Eigen::Matrix<double, 6, 1> mpm::MohrCoulomb<Tdim>::compute_stress(
     const Vector6d& stress, const Vector6d& dstrain,
     const ParticleBase<Tdim>* ptr, mpm::dense_map* state_vars) {
 
-  // Compute elastic tensor
-  this->compute_elastic_tensor(stress);
+  // Compute initial effective stress for first step
+  if ((*state_vars).at("initial_sigmam") == std::numeric_limits<double>::max())
+    (*state_vars).at("initial_sigmam") = std::abs((stress(0) + stress(1) + stress(2)) / 3.);
+  if ((*state_vars).at("initial_sigmav") == std::numeric_limits<double>::max())
+    (*state_vars).at("initial_sigmav") = std::abs(stress(1));
 
-  // Get equivalent plastic deviatoric strain
-  const double pdstrain = (*state_vars).at("pdstrain");
-  // Update MC parameters using a linear softening rule
-  if (softening_ && pdstrain > pdstrain_peak_) {
-    if (pdstrain < pdstrain_residual_) {
-      (*state_vars).at("phi") =
-          phi_residual_ +
-          ((phi_peak_ - phi_residual_) * (pdstrain - pdstrain_residual_) /
-           (pdstrain_peak_ - pdstrain_residual_));
-      (*state_vars).at("psi") =
-          psi_residual_ +
-          ((psi_peak_ - psi_residual_) * (pdstrain - pdstrain_residual_) /
-           (pdstrain_peak_ - pdstrain_residual_));
-      (*state_vars).at("cohesion") =
-          cohesion_residual_ + ((cohesion_peak_ - cohesion_residual_) *
-                                (pdstrain - pdstrain_residual_) /
-                                (pdstrain_peak_ - pdstrain_residual_));
-    } else {
-      (*state_vars).at("phi") = phi_residual_;
-      (*state_vars).at("psi") = psi_residual_;
-      (*state_vars).at("cohesion") = cohesion_residual_;
-    }
+  // Compute residual strength from SPT N value
+  if (spt_n_ != std::numeric_limits<double>::max()) {
+    cohesion_peak_ = 47.880208 * std::exp(0.1407 * spt_n_ + 4.2399 * std::pow((*state_vars).at("initial_sigmav") / pressure_reference_, 0.12));
+    (*state_vars).at("cohesion") =cohesion_peak_;
   }
+
+  // Compute elastic tensor
+  this->compute_elastic_tensor(state_vars);
+
   //-------------------------------------------------------------------------
   // Elastic-predictor stage: compute the trial stress
   Vector6d trial_stress = stress + (this->de_ * dstrain);
