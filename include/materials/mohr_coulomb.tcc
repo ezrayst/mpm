@@ -85,10 +85,10 @@ std::vector<std::string> mpm::MohrCoulomb<Tdim>::state_variables() const {
 
 //! Compute elastic tensor
 template <unsigned Tdim>
-bool mpm::MohrCoulomb<Tdim>::compute_elastic_tensor(mpm::dense_map* state_vars) {
+bool mpm::MohrCoulomb<Tdim>::compute_elastic_tensor() {
   // Shear modulus
-  const double G = 0.7 * kge_ * pressure_reference_ * std::pow((*state_vars).at("initial_sigmam") / pressure_reference_, 0.5);
-  const double K = G * 2. * (1. + poisson_ratio_) / (3. * (1. - 2. * poisson_ratio_));
+  const double G = shear_modulus_;
+  const double K = bulk_modulus_;
   const double a1 = K + (4.0 / 3.0) * G;
   const double a2 = K - (2.0 / 3.0) * G;
   // compute elastic stiffness matrix
@@ -334,19 +334,22 @@ Eigen::Matrix<double, 6, 1> mpm::MohrCoulomb<Tdim>::compute_stress(
     const ParticleBase<Tdim>* ptr, mpm::dense_map* state_vars) {
 
   // Compute initial effective stress for first step
-  if ((*state_vars).at("initial_sigmam") == std::numeric_limits<double>::max())
+  if ((*state_vars).at("initial_sigmam") == std::numeric_limits<double>::max()) {
     (*state_vars).at("initial_sigmam") = std::abs((stress(0) + stress(1) + stress(2)) / 3.);
-  if ((*state_vars).at("initial_sigmav") == std::numeric_limits<double>::max())
+    this->shear_modulus_ = 0.7 * kge_ * pressure_reference_ * std::pow((*state_vars).at("initial_sigmam") / pressure_reference_, 0.5);
+    this->bulk_modulus_ = shear_modulus_ * 2. * (1. + poisson_ratio_) / (3. * (1. - 2. * poisson_ratio_)); 
+  }
+  if ((*state_vars).at("initial_sigmav") == std::numeric_limits<double>::max()) {
     (*state_vars).at("initial_sigmav") = std::abs(stress(1));
-
-  // Compute residual strength from SPT N value
-  if (spt_n_ != std::numeric_limits<double>::max()) {
-    cohesion_peak_ = 47.880208 * std::exp(0.1407 * spt_n_ + 4.2399 * std::pow((*state_vars).at("initial_sigmav") / pressure_reference_, 0.12));
-    (*state_vars).at("cohesion") =cohesion_peak_;
+    // Compute residual strength from SPT N value
+    if (spt_n_ != std::numeric_limits<double>::max()) {
+      cohesion_peak_ = 47.880208 * std::exp(0.1407 * spt_n_ + 4.2399 * std::pow((*state_vars).at("initial_sigmav") / pressure_reference_, 0.12));
+    ( *state_vars).at("cohesion") =cohesion_peak_;
+    }    
   }
 
   // Compute elastic tensor
-  this->compute_elastic_tensor(state_vars);
+  this->compute_elastic_tensor();
 
   //-------------------------------------------------------------------------
   // Elastic-predictor stage: compute the trial stress

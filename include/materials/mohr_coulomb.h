@@ -95,7 +95,7 @@ class MohrCoulomb : public Material<Tdim> {
 
  private:
   //! Compute elastic tensor
-  bool compute_elastic_tensor(mpm::dense_map* state_vars);
+  bool compute_elastic_tensor();
 
   //! Elastic stiffness matrix
   Matrix6x6 de_;
