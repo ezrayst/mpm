@@ -317,11 +317,28 @@ void mpm::Mesh<Tdim>::find_cell_neighbours() {
       tbb::simple_partitioner());
 }
 
+//! Find global number of particles across MPI ranks / cell
+template <unsigned Tdim>
+void mpm::Mesh<Tdim>::find_nglobal_particles_cells() {
+  int mpi_rank = 0;
+#ifdef USE_MPI
+  MPI_Comm_rank(MPI_COMM_WORLD, &mpi_rank);
+  for (auto citr = cells_.cbegin(); citr != cells_.cend(); ++citr) {
+    int nparticles;
+    // Determine the rank of the broadcast emitter process
+    if ((*citr)->rank() == mpi_rank) nparticles = (*citr)->nparticles();
+    MPI_Bcast(&nparticles, 1, MPI_INT, (*citr)->rank(), MPI_COMM_WORLD);
+    // Receive broadcast and update on all ranks
+    (*citr)->nglobal_particles(nparticles);
+  }
+#endif
+}
+
 //! Find particle neighbours for all particle
 template <unsigned Tdim>
 void mpm::Mesh<Tdim>::find_particle_neighbours() {
   for (auto citr = cells_.cbegin(); citr != cells_.cend(); ++citr)
-    find_particle_neighbours(*citr);
+    this->find_particle_neighbours(*citr);
 }
 
 //! Find particle neighbours for specific cell particle
@@ -431,6 +448,49 @@ void mpm::Mesh<Tdim>::find_ghost_boundary_cells() {
     }
   }
 #endif
+}
+
+//! Find ncells in rank
+template <unsigned Tdim>
+mpm::Index mpm::Mesh<Tdim>::ncells_rank(bool active_cells) {
+  unsigned ncells_rank = 0;
+
+  int mpi_rank = 0;
+  int mpi_size = 1;
+#ifdef USE_MPI
+  // Get number of MPI ranks
+  MPI_Comm_rank(MPI_COMM_WORLD, &mpi_rank);
+#endif
+
+  if (active_cells) {
+    for (auto citr = cells_.cbegin(); citr != cells_.cend(); ++citr)
+      if ((*citr)->rank() == mpi_rank && (*citr)->nparticles() > 0)
+        ncells_rank += 1;
+  } else {
+    for (auto citr = cells_.cbegin(); citr != cells_.cend(); ++citr)
+      if ((*citr)->rank() == mpi_rank) ncells_rank += 1;
+  }
+  return ncells_rank;
+}
+
+//! Find nnodes in rank
+template <unsigned Tdim>
+mpm::Index mpm::Mesh<Tdim>::nnodes_rank() {
+  unsigned nnodes_rank = 0;
+
+  int mpi_rank = 0;
+#ifdef USE_MPI
+  // Get number of MPI ranks
+  MPI_Comm_rank(MPI_COMM_WORLD, &mpi_rank);
+#endif
+  for (auto nitr = nodes_.cbegin(); nitr != nodes_.cend(); ++nitr) {
+    // Get MPI ranks for the node
+    auto mpi_ranks = (*nitr)->mpi_ranks();
+    // Check if the local rank is in the list of ranks for the node
+    const bool local_node = mpi_ranks.find(mpi_rank) != mpi_ranks.end();
+    if (local_node) nnodes_rank += 1;
+  }
+  return nnodes_rank;
 }
 
 //! Create cells from node lists
@@ -1129,76 +1189,6 @@ void mpm::Mesh<Tdim>::apply_particle_velocity_constraints() {
   }
 }
 
-//! Assign nodal velocity constraints
-template <unsigned Tdim>
-bool mpm::Mesh<Tdim>::assign_nodal_velocity_constraint(
-    int set_id, const std::shared_ptr<mpm::VelocityConstraint>& vconstraint) {
-  bool status = true;
-  try {
-    if (set_id == -1 || node_sets_.find(set_id) != node_sets_.end()) {
-      int set_id = vconstraint->setid();
-      // If set id is -1, use all nodes
-      auto nset = (set_id == -1) ? this->nodes_ : node_sets_.at(set_id);
-      unsigned dir = vconstraint->dir();
-      double velocity = vconstraint->velocity();
-      tbb::parallel_for(
-          tbb::blocked_range<int>(size_t(0), size_t(nset.size()),
-                                  tbb_grain_size_),
-          [&](const tbb::blocked_range<int>& range) {
-            for (int i = range.begin(); i != range.end(); ++i) {
-              status = nset[i]->assign_velocity_constraint(dir, velocity);
-              if (!status)
-                throw std::runtime_error(
-                    "Failed to initialise velocity constraint at node");
-            }
-          },
-          tbb::simple_partitioner());
-    } else
-      throw std::runtime_error("No node set found to assign velocity con");
-
-  } catch (std::exception& exception) {
-    console_->error("{} #{}: {}\n", __FILE__, __LINE__, exception.what());
-    status = false;
-  }
-  return status;
-}
-
-//! Assign friction constraints to nodes
-template <unsigned Tdim>
-bool mpm::Mesh<Tdim>::assign_nodal_frictional_constraint(
-    int nset_id, const std::shared_ptr<mpm::FrictionConstraint>& fconstraint) {
-  bool status = false;
-  try {
-    if (nset_id == -1 || node_sets_.find(nset_id) != node_sets_.end()) {
-      int set_id = fconstraint->setid();
-      // If set id is -1, use all nodes
-      auto nset = (set_id == -1) ? this->nodes_ : node_sets_.at(set_id);
-      unsigned dir = fconstraint->dir();
-      int nsign_n = fconstraint->sign_n();
-      double friction = fconstraint->friction();
-      tbb::parallel_for(
-          tbb::blocked_range<int>(size_t(0), size_t(nset.size()),
-                                  tbb_grain_size_),
-          [&](const tbb::blocked_range<int>& range) {
-            for (int i = range.begin(); i != range.end(); ++i) {
-              status =
-                  nset[i]->assign_friction_constraint(dir, nsign_n, friction);
-              if (!status)
-                throw std::runtime_error(
-                    "Failed to initialise velocity constraint at node");
-            }
-          },
-          tbb::simple_partitioner());
-    } else
-      throw std::runtime_error("No node set found to assign velocity con");
-
-  } catch (std::exception& exception) {
-    console_->error("{} #{}: {}\n", __FILE__, __LINE__, exception.what());
-    status = false;
-  }
-  return status;
-}
-
 //! Assign node tractions
 template <unsigned Tdim>
 bool mpm::Mesh<Tdim>::assign_nodal_concentrated_forces(
@@ -1748,74 +1738,6 @@ bool mpm::Mesh<Tdim>::assign_nodal_concentrated_forces(
                                                             nullptr);
 
       if (!status) throw std::runtime_error("Force is invalid for node");
-    }
-  } catch (std::exception& exception) {
-    console_->error("{} #{}: {}\n", __FILE__, __LINE__, exception.what());
-    status = false;
-  }
-  return status;
-}
-
-//! Assign velocity constraints to nodes
-template <unsigned Tdim>
-bool mpm::Mesh<Tdim>::assign_nodal_velocity_constraints(
-    const std::vector<std::tuple<mpm::Index, unsigned, double>>&
-        velocity_constraints) {
-  bool status = false;
-  try {
-    if (!nodes_.size())
-      throw std::runtime_error(
-          "No nodes have been assigned in mesh, cannot assign velocity "
-          "constraints");
-
-    for (const auto& velocity_constraint : velocity_constraints) {
-      // Node id
-      mpm::Index nid = std::get<0>(velocity_constraint);
-      // Direction
-      unsigned dir = std::get<1>(velocity_constraint);
-      // Velocity
-      double velocity = std::get<2>(velocity_constraint);
-
-      // Apply constraint
-      status = map_nodes_[nid]->assign_velocity_constraint(dir, velocity);
-
-      if (!status)
-        throw std::runtime_error("Node or velocity constraint is invalid");
-    }
-  } catch (std::exception& exception) {
-    console_->error("{} #{}: {}\n", __FILE__, __LINE__, exception.what());
-    status = false;
-  }
-  return status;
-}
-
-//! Assign friction constraints to nodes
-template <unsigned Tdim>
-bool mpm::Mesh<Tdim>::assign_nodal_friction_constraints(
-    const std::vector<std::tuple<mpm::Index, unsigned, int, double>>&
-        friction_constraints) {
-  bool status = false;
-  try {
-    if (!nodes_.size())
-      throw std::runtime_error(
-          "No nodes have been assigned in mesh, cannot assign friction "
-          "constraints");
-
-    for (const auto& friction_constraint : friction_constraints) {
-      // Node id
-      mpm::Index nid = std::get<0>(friction_constraint);
-      // Direction
-      unsigned dir = std::get<1>(friction_constraint);
-      // Sign
-      int sign = std::get<2>(friction_constraint);
-      // Friction
-      double friction = std::get<3>(friction_constraint);
-
-      // Apply constraint
-      status = map_nodes_[nid]->assign_friction_constraint(dir, sign, friction);
-
-      if (!status)
-        throw std::runtime_error("Node or friction constraint is invalid");
     }
   } catch (std::exception& exception) {
     console_->error("{} #{}: {}\n", __FILE__, __LINE__, exception.what());
