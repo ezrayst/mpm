@@ -41,6 +41,16 @@ mpm::MohrCoulomb<Tdim>::MohrCoulomb(unsigned id,
     // Tensile strength
     tension_cutoff_ =
         material_properties.at("tension_cutoff").template get<double>();
+    // Youngs modulus and compute bulk and shear modulus
+    if (material_properties.find("youngs_modulus") != material_properties.end()) {
+      youngs_modulus_ = material_properties.at("youngs_modulus").template get<double>();
+      // Bulk modulus 
+      bulk_modulus_ = youngs_modulus_ / (3.0 * (1. - 2. * poisson_ratio_)); 
+      // Shear modulus  
+      shear_modulus_ = youngs_modulus_ / (2.0 * (1 + poisson_ratio_));  
+      // Set elastic tensor 
+      this->compute_elastic_tensor();     
+    }
     // Properties
     properties_ = material_properties;
 
@@ -341,9 +351,14 @@ Eigen::Matrix<double, 6, 1> mpm::MohrCoulomb<Tdim>::compute_stress(
     (*state_vars).at("initial_sigmav") = std::abs(stress(1)); 
   }
 
-  this->shear_modulus_ = 0.7 * kge_ * pressure_reference_ * std::pow((*state_vars).at("initial_sigmam") / pressure_reference_, 0.5);
-  this->bulk_modulus_ = shear_modulus_ * 2. * (1. + poisson_ratio_) / (3. * (1. - 2. * poisson_ratio_)); 
-  
+  if (youngs_modulus_ == std::numeric_limits<double>::max()) {
+    // Compute shear and bulk modulus
+    this->shear_modulus_ = 0.7 * kge_ * pressure_reference_ * std::pow((*state_vars).at("initial_sigmam") / pressure_reference_, 0.5);
+    this->bulk_modulus_ = shear_modulus_ * 2. * (1. + poisson_ratio_) / (3. * (1. - 2. * poisson_ratio_)); 
+    // Compute elastic tensor
+    this->compute_elastic_tensor();
+  }
+
   // Compute residual strength from SPT N value
   if (spt_n_ != std::numeric_limits<double>::max()) {
     cohesion_peak_ = 47.880208 * std::exp(0.1407 * spt_n_ + 4.2399 * std::pow((*state_vars).at("initial_sigmav") / pressure_reference_, 0.12));
@@ -352,9 +367,6 @@ Eigen::Matrix<double, 6, 1> mpm::MohrCoulomb<Tdim>::compute_stress(
 
   // std::cout << "Sigmam: " << (*state_vars).at("initial_sigmam") << "\t Sigmav: " << (*state_vars).at("initial_sigmav") << '\n';
   // std::cout << "K: " << bulk_modulus_ << "\t G: " << shear_modulus_ << "\t coh: " << (*state_vars).at("cohesion") << '\n';
-
-  // Compute elastic tensor
-  this->compute_elastic_tensor();
 
   // Get equivalent plastic deviatoric strain
   const double pdstrain = (*state_vars).at("pdstrain");

@@ -110,6 +110,8 @@ class MohrCoulomb : public Material<Tdim> {
   double shear_modulus_{std::numeric_limits<double>::max()};
   //! Bulk modulus
   double bulk_modulus_{std::numeric_limits<double>::max()};
+  //! Youngs modulus
+  double youngs_modulus_{std::numeric_limits<double>::max()};
   //! Reference pressure
   double pressure_reference_{100000.};
   //! Poisson ratio
