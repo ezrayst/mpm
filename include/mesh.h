@@ -220,8 +220,13 @@ class Mesh {
   //! Remove all particles in a cell in nonlocal rank
   void remove_all_nonrank_particles();
 
+  //! Transfer halo particles to different ranks
+  void transfer_halo_particles();
+
   //! Transfer particles to different ranks in nonlocal rank cells
-  void transfer_nonrank_particles();
+  //! \param[in] exchange_cells Vector of cell ids that needs exchange
+  void transfer_nonrank_particles(
+      const std::vector<mpm::Index>& exchange_cells);
 
   //! Find shared nodes across MPI domains in the mesh
   void find_domain_shared_nodes();
@@ -388,7 +393,7 @@ class Mesh {
   std::vector<Eigen::Matrix<double, 3, 1>> nodal_coordinates() const;
 
   //! Return node pairs
-  std::vector<std::array<mpm::Index, 2>> node_pairs() const;
+  std::vector<std::array<mpm::Index, 2>> node_pairs(bool active = false) const;
 
   //! Create map of vector of particles in sets
   //! \param[in] map of particles ids in sets
@@ -434,6 +439,9 @@ class Mesh {
 
   //! Inject particles
   void inject_particles(double current_time);
+
+  // Create the nodal properties' pool
+  void create_nodal_properties();
 
  private:
   // Read particles from file
@@ -496,7 +504,7 @@ class Mesh {
   //! Vector of generators for particle injections
   std::vector<mpm::Injection> particle_injections_;
   //! Nodal property pool
-  std::shared_ptr<mpm::NodalProperties> nodal_properties_;
+  std::shared_ptr<mpm::NodalProperties> nodal_properties_{nullptr};
   //! Logger
   std::unique_ptr<spdlog::logger> console_;
   //! TBB grain size

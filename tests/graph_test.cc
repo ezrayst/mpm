@@ -329,7 +329,7 @@ TEST_CASE("Graph Partitioning in 2D", "[mpi][graph][2D]") {
 
     auto material =
         Factory<mpm::Material<Dim>, unsigned, const Json&>::instance()->create(
-            "LinearElastic2D", std::move(mid), jmaterial);
+            "LinearElastic2D", std::move(1), jmaterial);
 
     std::map<unsigned, std::shared_ptr<mpm::Material<Dim>>> materials;
     materials[mid] = material;
@@ -534,7 +534,8 @@ TEST_CASE("Graph Partitioning in 2D", "[mpi][graph][2D]") {
         // REQUIRE(graph_partition == true);
 
         // Collect the partitions
-        graph->collect_partitions(mpi_size, mpi_rank, &comm);
+        auto exchange_cells =
+            graph->collect_partitions(mpi_size, mpi_rank, &comm);
 
         // Delete all the particles which is not in local task parititon
         mesh->remove_all_nonrank_particles();
@@ -595,7 +596,7 @@ TEST_CASE("Graph Partitioning in 3D", "[mpi][graph][3D]") {
 
     auto material =
         Factory<mpm::Material<Dim>, unsigned, const Json&>::instance()->create(
-            "LinearElastic3D", std::move(mid), jmaterial);
+            "LinearElastic3D", std::move(1), jmaterial);
 
     std::map<unsigned, std::shared_ptr<mpm::Material<Dim>>> materials;
     materials[mid] = material;
@@ -827,7 +828,8 @@ TEST_CASE("Graph Partitioning in 3D", "[mpi][graph][3D]") {
         // REQUIRE(graph_partition == true);
 
         // Collect the partitions
-        graph->collect_partitions(mpi_size, mpi_rank, &comm);
+        auto exchange_cells =
+            graph->collect_partitions(mpi_size, mpi_rank, &comm);
 
         // Delete all the particles which is not in local task parititon
         mesh->remove_all_nonrank_particles();
