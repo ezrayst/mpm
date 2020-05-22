@@ -38,7 +38,7 @@ bool mpm::Particle<Tdim>::initialise_particle(const HDF5Particle& particle) {
   // Mass
   this->mass_ = particle.mass;
   // Volume
-  this->assign_volume(particle.volume);
+  this->volume_ = particle.volume;
   // Mass Density
   this->mass_density_ = particle.mass / particle.volume;
   // Set local size of particle
@@ -502,6 +502,24 @@ void mpm::Particle<Tdim>::map_mass_momentum_to_nodes() noexcept {
   }
 }
 
+//! Map multimaterial properties to nodes
+template <unsigned Tdim>
+void mpm::Particle<Tdim>::map_multimaterial_mass_momentum_to_nodes() noexcept {
+  // Check if particle mass is set
+  assert(mass_ != std::numeric_limits<double>::max());
+
+  // Unit 1x1 Eigen matrix to be used with scalar quantities
+  Eigen::Matrix<double, 1, 1> nodal_mass;
+
+  // Map mass and momentum to nodal property taking into account the material id
+  for (unsigned i = 0; i < nodes_.size(); ++i) {
+    nodal_mass(0, 0) = mass_ * shapefn_[i];
+    nodes_[i]->update_property(true, "masses", nodal_mass, material_id_, 1);
+    nodes_[i]->update_property(true, "momenta", nodal_mass(0, 0) * velocity_,
+                               material_id_, Tdim);
+  }
+}
+
 // Compute strain rate of the particle
 template <>
 inline Eigen::Matrix<double, 6, 1> mpm::Particle<1>::compute_strain_rate(
@@ -741,7 +759,7 @@ bool mpm::Particle<Tdim>::map_pressure_to_nodes() noexcept {
     for (unsigned i = 0; i < nodes_.size(); ++i)
       nodes_[i]->update_mass_pressure(
           mpm::ParticlePhase::Solid,
-          shapefn_[i] * mass_ * state_variables_.at("pressure"));
+          shapefn_[i] * mass_ * state_variables_["pressure"]);
 
     status = true;
   }
@@ -764,7 +782,7 @@ bool mpm::Particle<Tdim>::compute_pressure_smoothing() noexcept {
     for (unsigned i = 0; i < this->nodes_.size(); ++i)
       pressure += shapefn_[i] * nodes_[i]->pressure(mpm::ParticlePhase::Solid);
 
-    state_variables_.at("pressure") = pressure;
+    state_variables_["pressure"] = pressure;
     status = true;
   }
   return status;
