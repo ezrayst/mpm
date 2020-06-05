@@ -170,6 +170,9 @@ bool mpm::MPMExplicit<Tdim>::solve() {
     throw std::runtime_error("Initialisation of loading failed");
   }
 
+  // Create nodal properties
+  if (interface_) mesh_->create_nodal_properties();
+
   // Compute mass
   mesh_->iterate_over_particles(
       std::bind(&mpm::ParticleBase<Tdim>::compute_mass, std::placeholders::_1));
@@ -180,11 +183,23 @@ bool mpm::MPMExplicit<Tdim>::solve() {
   // Check point resume
   if (resume) this->checkpoint_resume();
 
+  // Domain decompose
+  bool initial_step = (resume == true) ? false : true;
+  this->mpi_domain_decompose(initial_step);
+
   auto solver_begin = std::chrono::steady_clock::now();
   // Main loop
   for (; step_ < nsteps_; ++step_) {
 
     if (mpi_rank == 0) console_->info("Step: {} of {}.\n", step_, nsteps_);
+
+#ifdef USE_MPI
+#ifdef USE_GRAPH_PARTITIONING
+    // Run load balancer at a specified frequency
+    if (step_ % nload_balance_steps_ == 0 && step_ != 0)
+      this->mpi_domain_decompose(false);
+#endif
+#endif
 
     // Inject particles
     mesh_->inject_particles(this->step_ * this->dt_);
@@ -211,11 +226,16 @@ bool mpm::MPMExplicit<Tdim>::solve() {
 
     task_group.wait();
 
-    // Assign material ids to node
-    if (interface_)
+    // Initialise nodal properties and append material ids to node
+    if (interface_) {
+      // Initialise nodal properties
+      mesh_->initialise_nodal_properties();
+
+      // Append material ids to nodes
       mesh_->iterate_over_particles(
           std::bind(&mpm::ParticleBase<Tdim>::append_material_id_to_nodes,
                     std::placeholders::_1));
+    }
 
     // Assign mass and momentum to nodes
     mesh_->iterate_over_particles(
@@ -245,6 +265,11 @@ bool mpm::MPMExplicit<Tdim>::solve() {
         std::bind(&mpm::NodeBase<Tdim>::compute_velocity,
                   std::placeholders::_1),
         std::bind(&mpm::NodeBase<Tdim>::status, std::placeholders::_1));
+
+    if (interface_)
+      mesh_->iterate_over_nodes(std::bind(
+          &mpm::NodeBase<Tdim>::compute_multimaterial_change_in_momentum,
+          std::placeholders::_1));
 
     // Update stress first
     if (this->stress_update_ == mpm::StressUpdate::USF)
@@ -338,21 +363,16 @@ bool mpm::MPMExplicit<Tdim>::solve() {
     // Locate particles
     auto unlocatable_particles = mesh_->locate_particles_mesh();
 
-    if (!unlocatable_particles.empty()) {
-       for (auto i : unlocatable_particles) {
-         std::cout << "Particle lost: " << i->id() << '\n';
-         mesh_->remove_particle(i);
-         // this->particles_removed_ += 1;
-         // std::cout << "Particle removed total: " << particles_removed_ << '\n';
-       }
-       // Do not Throw
-       // throw std::runtime_error("Particle outside the mesh domain");
-    }
-
+    if (!unlocatable_particles.empty() && this->locate_particles_)
+      throw std::runtime_error("Particle outside the mesh domain");
+    // If unable to locate particles remove particles
+    if (!unlocatable_particles.empty() && !this->locate_particles_)
+      for (const auto& remove_particle : unlocatable_particles)
+        mesh_->remove_particle(remove_particle);
 
 #ifdef USE_MPI
 #ifdef USE_GRAPH_PARTITIONING
-    mesh_->transfer_nonrank_particles();
+    mesh_->transfer_halo_particles();
 #endif
 #endif
 

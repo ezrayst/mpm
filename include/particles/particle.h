@@ -141,6 +141,9 @@ class Particle : public ParticleBase<Tdim> {
   //! Map particle mass and momentum to nodes
   void map_mass_momentum_to_nodes() noexcept override;
 
+  //! Map multimaterial properties to nodes
+  void map_multimaterial_mass_momentum_to_nodes() noexcept override;
+
   //! Assign nodal mass to particles
   //! \param[in] mass Mass from the particles in a cell
   //! \retval status Assignment status
@@ -248,10 +251,10 @@ class Particle : public ParticleBase<Tdim> {
                : std::numeric_limits<double>::quiet_NaN();
   }
 
-  //! Return vector data of particles
+  //! Return tensor data of particles
   //! \param[in] property Property string
-  //! \retval vecdata Vector data of particle property
-  Eigen::VectorXd vector_data(const std::string& property) override;
+  //! \retval vecdata Tensor data of particle property
+  Eigen::VectorXd tensor_data(const std::string& property) override;
 
   //! Apply particle velocity constraints
   //! \param[in] dir Direction of particle velocity constraint
@@ -302,11 +305,11 @@ class Particle : public ParticleBase<Tdim> {
   //! Neighbour particles
   using ParticleBase<Tdim>::neighbours_;
   //! Volumetric mass density (mass / volume)
-  double mass_density_;
+  double mass_density_{0.};
   //! Mass
-  double mass_;
+  double mass_{0.};
   //! Volume
-  double volume_;
+  double volume_{0.};
   //! Size of particle
   Eigen::Matrix<double, 1, Tdim> size_;
   //! Size of particle in natural coordinates
@@ -316,9 +319,9 @@ class Particle : public ParticleBase<Tdim> {
   //! Strains
   Eigen::Matrix<double, 6, 1> strain_;
   //! dvolumetric strain
-  double dvolumetric_strain_;
+  double dvolumetric_strain_{0.};
   //! Volumetric strain at centroid
-  double volumetric_strain_centroid_;
+  double volumetric_strain_centroid_{0.};
   //! Strain rate
   Eigen::Matrix<double, 6, 1> strain_rate_;
   //! dstrains
