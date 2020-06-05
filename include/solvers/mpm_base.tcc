@@ -13,7 +13,10 @@ mpm::MPMBase<Tdim>::MPMBase(const std::shared_ptr<IO>& io) : mpm::MPM(io) {
   // Set mesh as isoparametric
   bool isoparametric = is_isoparametric();
 
-  mesh_ = std::make_unique<mpm::Mesh<Tdim>>(id, isoparametric);
+  mesh_ = std::make_shared<mpm::Mesh<Tdim>>(id, isoparametric);
+
+  // Create constraints
+  constraints_ = std::make_shared<mpm::Constraints<Tdim>>(mesh_);
 
   // Empty all materials
   materials_.clear();
@@ -24,6 +27,11 @@ mpm::MPMBase<Tdim>::MPMBase(const std::shared_ptr<IO>& io) : mpm::MPM(io) {
     dt_ = analysis_["dt"].template get<double>();
     // Number of time steps
     nsteps_ = analysis_["nsteps"].template get<mpm::Index>();
+
+    // nload balance
+    if (analysis_.find("nload_balance_steps") != analysis_.end())
+      nload_balance_steps_ =
+          analysis_["nload_balance_steps"].template get<mpm::Index>();
 
     // Locate particles
     if (analysis_.find("locate_particles") != analysis_.end())
@@ -82,29 +90,6 @@ mpm::MPMBase<Tdim>::MPMBase(const std::shared_ptr<IO>& io) : mpm::MPM(io) {
     console_->error("{} {} Get analysis object: {}", __FILE__, __LINE__,
                     domain_error.what());
     abort();
-  }
-
-  // Default VTK attributes
-  std::vector<std::string> vtk = {"velocities", "stresses", "strains",
-                                  "displacements"};
-  try {
-    if (post_process_.at("vtk").is_array() &&
-        post_process_.at("vtk").size() > 0) {
-      for (unsigned i = 0; i < post_process_.at("vtk").size(); ++i) {
-        std::string attribute =
-            post_process_["vtk"][i].template get<std::string>();
-        if (std::find(vtk.begin(), vtk.end(), attribute) != vtk.end())
-          vtk_attributes_.emplace_back(attribute);
-        else
-          throw std::runtime_error("Specificed VTK argument is incorrect");
-      }
-    } else {
-      throw std::runtime_error(
-          "Specificed VTK arguments are incorrect, using defaults");
-    }
-  } catch (std::exception& exception) {
-    vtk_attributes_ = vtk;
-    console_->warn("{} {}: {}", __FILE__, __LINE__, exception.what());
   }
 
   // VTK state variables
@@ -407,6 +392,11 @@ bool mpm::MPMBase<Tdim>::checkpoint_resume() {
     // TODO: Set phase
     const unsigned phase = 0;
 
+    int mpi_rank = 0;
+#ifdef USE_MPI
+    MPI_Comm_rank(MPI_COMM_WORLD, &mpi_rank);
+#endif
+
     if (!analysis_["resume"]["resume"].template get<bool>())
       throw std::runtime_error("Resume analysis option is disabled!");
 
@@ -422,6 +412,7 @@ bool mpm::MPMBase<Tdim>::checkpoint_resume() {
     auto particles_file =
         io_->output_file(attribute, extension, uuid_, step_, this->nsteps_)
             .string();
+
     // Load particle information from file
     mesh_->read_particles_hdf5(phase, particles_file);
 
@@ -437,7 +428,6 @@ bool mpm::MPMBase<Tdim>::checkpoint_resume() {
 
     // Increament step
     ++this->step_;
-
     console_->info("Checkpoint resume at step {} of {}", this->step_,
                    this->nsteps_);
 
@@ -473,10 +463,11 @@ void mpm::MPMBase<Tdim>::write_vtk(mpm::Index step, mpm::Index max_steps) {
   auto vtk_writer = std::make_unique<VtkWriter>(mesh_->particle_coordinates());
 
   // Write mesh on step 0
-  if (step == 0)
+  // Get active node pairs use true
+  if (step % nload_balance_steps_ == 0)
     vtk_writer->write_mesh(
         io_->output_file("mesh", ".vtp", uuid_, step, max_steps).string(),
-        mesh_->nodal_coordinates(), mesh_->node_pairs());
+        mesh_->nodal_coordinates(), mesh_->node_pairs(true));
 
   // Write input geometry to vtk file
   const std::string extension = ".vtp";
@@ -497,13 +488,16 @@ void mpm::MPMBase<Tdim>::write_vtk(mpm::Index step, mpm::Index max_steps) {
   MPI_Comm_size(MPI_COMM_WORLD, &mpi_size);
 #endif
 
+  //! VTK vector variables
+  std::vector<std::string> vtk_vector_data = {"displacements", "velocities"};
+
   // Write VTK attributes
-  for (const auto& attribute : vtk_attributes_) {
+  for (const auto& attribute : vtk_vector_data) {
     // Write vector
     auto file =
         io_->output_file(attribute, extension, uuid_, step, max_steps).string();
     vtk_writer->write_vector_point_data(
-        file, mesh_->particles_vector_data(attribute), attribute);
+        file, mesh_->template particles_tensor_data<3>(attribute), attribute);
 
     // Write a parallel MPI VTK container file
 #ifdef USE_MPI
@@ -514,6 +508,30 @@ void mpm::MPMBase<Tdim>::write_vtk(mpm::Index step, mpm::Index max_steps) {
 
       vtk_writer->write_parallel_vtk(parallel_file, attribute, mpi_size, step,
                                      max_steps);
+    }
+#endif
+  }
+
+  //! VTK tensor variables
+  std::vector<std::string> vtk_tensor_data = {"stresses", "strains"};
+
+  // Write VTK attributes
+  for (const auto& attribute : vtk_tensor_data) {
+    // Write vector
+    auto file =
+        io_->output_file(attribute, extension, uuid_, step, max_steps).string();
+    vtk_writer->write_tensor_point_data(
+        file, mesh_->template particles_tensor_data<6>(attribute), attribute);
+
+    // Write a parallel MPI VTK container file
+#ifdef USE_MPI
+    if (mpi_rank == 0 && mpi_size > 1) {
+      auto parallel_file = io_->output_file(attribute, ".pvtp", uuid_, step,
+                                            max_steps, write_mpi_rank)
+                               .string();
+
+      vtk_writer->write_parallel_vtk(parallel_file, attribute, mpi_size, step,
+                                     max_steps, 9);
     }
 #endif
   }
@@ -781,9 +799,10 @@ void mpm::MPMBase<Tdim>::nodal_velocity_constraints(
         if (constraints.find("file") != constraints.end()) {
           std::string velocity_constraints_file =
               constraints.at("file").template get<std::string>();
-          bool velocity_constraints = mesh_->assign_nodal_velocity_constraints(
-              mesh_io->read_velocity_constraints(
-                  io_->file_name(velocity_constraints_file)));
+          bool velocity_constraints =
+              constraints_->assign_nodal_velocity_constraints(
+                  mesh_io->read_velocity_constraints(
+                      io_->file_name(velocity_constraints_file)));
           if (!velocity_constraints)
             throw std::runtime_error(
                 "Velocity constraints are not properly assigned");
@@ -798,7 +817,8 @@ void mpm::MPMBase<Tdim>::nodal_velocity_constraints(
           // Add velocity constraint to mesh
           auto velocity_constraint =
               std::make_shared<mpm::VelocityConstraint>(nset_id, dir, velocity);
-          mesh_->assign_nodal_velocity_constraint(nset_id, velocity_constraint);
+          constraints_->assign_nodal_velocity_constraint(nset_id,
+                                                         velocity_constraint);
         }
       }
     } else
@@ -825,9 +845,10 @@ void mpm::MPMBase<Tdim>::nodal_frictional_constraints(
         if (constraints.find("file") != constraints.end()) {
           std::string friction_constraints_file =
               constraints.at("file").template get<std::string>();
-          bool friction_constraints = mesh_->assign_nodal_friction_constraints(
-              mesh_io->read_friction_constraints(
-                  io_->file_name(friction_constraints_file)));
+          bool friction_constraints =
+              constraints_->assign_nodal_friction_constraints(
+                  mesh_io->read_friction_constraints(
+                      io_->file_name(friction_constraints_file)));
           if (!friction_constraints)
             throw std::runtime_error(
                 "Friction constraints are not properly assigned");
@@ -845,8 +866,8 @@ void mpm::MPMBase<Tdim>::nodal_frictional_constraints(
           // Add friction constraint to mesh
           auto friction_constraint = std::make_shared<mpm::FrictionConstraint>(
               nset_id, dir, sign_n, friction);
-          mesh_->assign_nodal_frictional_constraint(nset_id,
-                                                    friction_constraint);
+          constraints_->assign_nodal_frictional_constraint(nset_id,
+                                                           friction_constraint);
         }
       }
     } else
@@ -1045,4 +1066,69 @@ bool mpm::MPMBase<Tdim>::initialise_damping(const Json& damping_props) {
   }
 
   return status;
+}
+
+//! Domain decomposition
+template <unsigned Tdim>
+void mpm::MPMBase<Tdim>::mpi_domain_decompose(bool initial_step) {
+#ifdef USE_MPI
+  // Initialise MPI rank and size
+  int mpi_rank = 0;
+  int mpi_size = 1;
+
+  // Get MPI rank
+  MPI_Comm_rank(MPI_COMM_WORLD, &mpi_rank);
+  // Get number of MPI ranks
+  MPI_Comm_size(MPI_COMM_WORLD, &mpi_size);
+
+  if (mpi_size > 1 && mesh_->ncells() > 1) {
+
+    // Initialize MPI
+    MPI_Comm comm;
+    MPI_Comm_dup(MPI_COMM_WORLD, &comm);
+
+    auto mpi_domain_begin = std::chrono::steady_clock::now();
+    console_->info("Rank {}, Domain decomposition started\n", mpi_rank);
+
+    // Check if mesh has cells to partition
+    if (mesh_->ncells() == 0)
+      throw std::runtime_error("Container of cells is empty");
+
+#ifdef USE_GRAPH_PARTITIONING
+    // Create graph object if empty
+    if (initial_step || graph_ == nullptr)
+      graph_ = std::make_shared<Graph<Tdim>>(mesh_->cells());
+
+    // Find number of particles in each cell across MPI ranks
+    mesh_->find_nglobal_particles_cells();
+
+    // Construct a weighted DAG
+    graph_->construct_graph(mpi_size, mpi_rank);
+
+    // Graph partitioning mode
+    int mode = 4;  // FAST
+    // Create graph partition
+    bool graph_partition = graph_->create_partitions(&comm, mode);
+    // Collect the partitions
+    auto exchange_cells = graph_->collect_partitions(mpi_size, mpi_rank, &comm);
+
+    // Identify shared nodes across MPI domains
+    mesh_->find_domain_shared_nodes();
+    // Identify ghost boundary cells
+    mesh_->find_ghost_boundary_cells();
+
+    // Delete all the particles which is not in local task parititon
+    if (initial_step) mesh_->remove_all_nonrank_particles();
+    // Transfer non-rank particles to appropriate cells
+    else
+      mesh_->transfer_nonrank_particles(exchange_cells);
+
+#endif
+    auto mpi_domain_end = std::chrono::steady_clock::now();
+    console_->info("Rank {}, Domain decomposition: {} ms", mpi_rank,
+                   std::chrono::duration_cast<std::chrono::milliseconds>(
+                       mpi_domain_end - mpi_domain_begin)
+                       .count());
+  }
+#endif  // MPI
 }

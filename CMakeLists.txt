@@ -124,10 +124,9 @@ endif()
 # VTK
 find_package(VTK)
 if (VTK_FOUND)
+  add_definitions("-DUSE_VTK")
   include_directories(${VTK_INCLUDE_DIRS})
   link_libraries(${VTK_LIBRARIES})
-  add_definitions("-DUSE_VTK")
-  set(mpm_vtk ${mpm_SOURCE_DIR}/src/io/vtk_writer.cc)
 endif()
 
 # Partio
@@ -170,6 +169,7 @@ SET(mpm_src
   ${mpm_SOURCE_DIR}/src/io/io_mesh.cc
   ${mpm_SOURCE_DIR}/src/io/logger.cc
   ${mpm_SOURCE_DIR}/src/io/partio_writer.cc
+  ${mpm_SOURCE_DIR}/src/io/vtk_writer.cc
   ${mpm_SOURCE_DIR}/src/material.cc
   ${mpm_SOURCE_DIR}/src/mpm.cc
   ${mpm_SOURCE_DIR}/src/nodal_properties.cc
@@ -205,6 +205,7 @@ if(MPM_BUILD_TESTING)
     ${mpm_SOURCE_DIR}/tests/functions/linear_function_test.cc
     ${mpm_SOURCE_DIR}/tests/functions/sin_function_test.cc
     ${mpm_SOURCE_DIR}/tests/graph_test.cc
+    ${mpm_SOURCE_DIR}/tests/interface_test.cc
     ${mpm_SOURCE_DIR}/tests/io/io_mesh_ascii_test.cc
     ${mpm_SOURCE_DIR}/tests/io/io_test.cc
     ${mpm_SOURCE_DIR}/tests/io/vtk_writer_test.cc
@@ -216,8 +217,10 @@ if(MPM_BUILD_TESTING)
     ${mpm_SOURCE_DIR}/tests/materials/mohr_coulomb_test.cc
     ${mpm_SOURCE_DIR}/tests/materials/newtonian_test.cc
     ${mpm_SOURCE_DIR}/tests/materials/norsand_test.cc
+    ${mpm_SOURCE_DIR}/tests/materials/material_utility_test.cc
     ${mpm_SOURCE_DIR}/tests/mesh_neighbours_test.cc
-    ${mpm_SOURCE_DIR}/tests/mesh_test.cc
+    ${mpm_SOURCE_DIR}/tests/mesh_test_2d.cc
+    ${mpm_SOURCE_DIR}/tests/mesh_test_3d.cc
     ${mpm_SOURCE_DIR}/tests/mpi_particle_test.cc
     ${mpm_SOURCE_DIR}/tests/mpi_transfer_particle_test.cc
     ${mpm_SOURCE_DIR}/tests/mpm_explicit_usf_test.cc
@@ -240,7 +243,7 @@ if(MPM_BUILD_TESTING)
     add_test(NAME mpmtest COMMAND $<TARGET_FILE:mpmtest>)
     enable_testing()
   else()
-    add_executable(mpmtest ${test_src} ${mpm_src} ${mpm_vtk})
+    add_executable(mpmtest ${mpm_src} ${test_src})
     add_test(NAME mpmtest COMMAND $<TARGET_FILE:mpmtest>)
     enable_testing()
   endif()
@@ -249,6 +252,6 @@ endif()
 # Coverage
 find_package(codecov)
 if(ENABLE_COVERAGE)
-  add_executable(mpmtest_coverage ${mpm_vtk} ${mpm_src} ${test_src})
+  add_executable(mpmtest_coverage ${mpm_src} ${test_src})
   add_coverage(mpmtest_coverage)
 endif()

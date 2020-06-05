@@ -18,11 +18,10 @@
 #include "graph.h"
 #endif
 
-#include "friction_constraint.h"
+#include "constraints.h"
 #include "mpm.h"
 #include "particle.h"
 #include "vector.h"
-#include "velocity_constraint.h"
 
 namespace mpm {
 
@@ -81,6 +80,10 @@ class MPMBase : public MPM {
 
   //! Write HDF5 files
   void write_hdf5(mpm::Index step, mpm::Index max_steps) override;
+
+  //! Domain decomposition
+  //! \param[in] initial_step Start of simulation or later steps
+  void mpi_domain_decompose(bool initial_step = false) override;
 
  private:
   //! Return if a mesh will be isoparametric or not
@@ -161,6 +164,8 @@ class MPMBase : public MPM {
   using mpm::MPM::nsteps_;
   //! Output steps
   using mpm::MPM::output_steps_;
+  //! Load balancing steps
+  using mpm::MPM::nload_balance_steps_;
   //! A unique ptr to IO object
   using mpm::MPM::io_;
   //! JSON analysis object
@@ -177,13 +182,13 @@ class MPMBase : public MPM {
   //! Gravity
   Eigen::Matrix<double, Tdim, 1> gravity_;
   //! Mesh object
-  std::unique_ptr<mpm::Mesh<Tdim>> mesh_;
+  std::shared_ptr<mpm::Mesh<Tdim>> mesh_;
+  //! Constraints object
+  std::shared_ptr<mpm::Constraints<Tdim>> constraints_;
   //! Materials
   std::map<unsigned, std::shared_ptr<mpm::Material<Tdim>>> materials_;
   //! Mathematical functions
   std::map<unsigned, std::shared_ptr<mpm::FunctionBase>> math_functions_;
-  //! VTK attributes
-  std::vector<std::string> vtk_attributes_;
   //! VTK state variables
   std::vector<std::string> vtk_statevars_;
   //! Set node concentrated force
