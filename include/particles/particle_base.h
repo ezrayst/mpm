@@ -139,6 +139,9 @@ class ParticleBase {
   //! Map particle mass and momentum to nodes
   virtual void map_mass_momentum_to_nodes() noexcept = 0;
 
+  //! Map multimaterial properties to nodes
+  virtual void map_multimaterial_mass_momentum_to_nodes() noexcept = 0;
+
   //! Assign material
   virtual bool assign_material(
       const std::shared_ptr<Material<Tdim>>& material) = 0;
@@ -225,10 +228,10 @@ class ParticleBase {
   //! Return a state variable
   virtual double state_variable(const std::string& var) const = 0;
 
-  //! Return vector data of particles
+  //! Return tensor data of particles
   //! \param[in] property Property string
-  //! \retval vecdata Vector data of particle property
-  virtual Eigen::VectorXd vector_data(const std::string& property) = 0;
+  //! \retval vecdata Tensor data of particle property
+  virtual Eigen::VectorXd tensor_data(const std::string& property) = 0;
 
   //! Apply particle velocity constraints
   //! \param[in] dir Direction of particle velocity constraint

@@ -39,6 +39,9 @@ class Bingham : public Material<Tdim> {
   //! \retval state_vars State variables with history
   mpm::dense_map initialise_state_variables() override;
 
+  //! State variables
+  std::vector<std::string> state_variables() const override;
+
   //! Compute stress
   //! \param[in] stress Stress
   //! \param[in] dstrain Strain
@@ -80,6 +83,8 @@ class Bingham : public Material<Tdim> {
   double mu_{std::numeric_limits<double>::max()};
   //! Critical yielding shear rate
   double critical_shear_rate_{std::numeric_limits<double>::max()};
+  //! Compressibility multiplier
+  double compressibility_multiplier_{1.0};
 
 };  // Bingham class
 }  // namespace mpm
