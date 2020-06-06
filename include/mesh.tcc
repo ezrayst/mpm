@@ -1010,7 +1010,7 @@ std::vector<std::shared_ptr<mpm::ParticleBase<Tdim>>>
                 [=, &particles](
                     const std::shared_ptr<mpm::ParticleBase<Tdim>>& particle) {
                   // If particle is not found in mesh add to a list of particles
-                  if (particle->state_variable("epds") > 0.001)
+                  if (particle->state_variable("pdstrain") > 0.001)
                     particles.emplace_back(particle);
                 });
 
