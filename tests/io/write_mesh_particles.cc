@@ -100,8 +100,8 @@ bool write_json(unsigned dim, bool resume, const std::string& analysis,
         {"newmark", {{"newmark", true}, {"gamma", 0.5}, {"beta", 0.25}}}}},
       {"post_processing",
        {{"path", "results/"},
-        {"vtk", {{"stresses", "strains", "velocity"}}},
-        {"vtk_statevars", {{"pdstrain"}}},
+        {"vtk", {"stresses", "strains", "velocities"}},
+        {"vtk_statevars", {{{"phase_id", 0}, {"statevars", {"pdstrain"}}}}},
         {"output_steps", 5}}}};
 
   // Dump JSON as an input file to be read
