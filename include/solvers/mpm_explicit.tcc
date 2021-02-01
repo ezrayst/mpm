@@ -287,7 +287,7 @@ bool mpm::MPMExplicit<Tdim>::solve() {
     // If unable to locate particles remove particles
     if (!unlocatable_particles.empty() && !this->locate_particles_)
       for (const auto& remove_particle : unlocatable_particles) {
-        std::cout << "Particle lost: " << remove_particle->id() << '\n';
+        std::cout << "Particle lost: " << remove_particle->id() << '\t' << remove_particle->coordinates() << '\n';
         mesh_->remove_particle(remove_particle);        
       }
 

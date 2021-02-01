@@ -1347,7 +1347,7 @@ bool mpm::Mesh<Tdim>::assign_particles_stresses(
     if (!particles_.size())
       throw std::runtime_error(
           "No particles have been assigned in mesh, cannot assign stresses");
-
+    std::cout << "Particle number: " << particles_.size() << '\n';
     if (particles_.size() != particle_stresses.size())
       throw std::runtime_error(
           "Number of particles in mesh and initial stresses don't match");
@@ -1844,6 +1844,8 @@ bool mpm::Mesh<Tdim>::read_particles_file(const std::shared_ptr<mpm::IO>& io,
 
   // Get coordinates
   auto coords = particle_io->read_particles(file_loc);
+
+  std::cout << "Material ID: " << material_id << " with " << coords.size() << '\n';
 
   // Create particles from coordinates
   bool status = this->create_particles(particle_type, coords, material_id,

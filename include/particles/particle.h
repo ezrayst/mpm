@@ -5,6 +5,7 @@
 #include <tbb/parallel_for.h>
 
 #include <array>
+#include <iostream>
 #include <limits>
 #include <memory>
 #include <string>

@@ -604,8 +604,20 @@ void mpm::Particle<Tdim>::compute_stress() noexcept {
   // Check if material ptr is valid
   assert(material_ != nullptr);
   // Calculate stress
-  this->stress_ =
+  // this->stress_ =
+  //     material_->compute_stress(stress_, dstrain_, this, &state_variables_);
+
+  const auto clone_sv = state_variables_;
+
+  auto new_stress =
       material_->compute_stress(stress_, dstrain_, this, &state_variables_);
+  
+  double sum_stress = new_stress.sum();
+  if (std::isnan(sum_stress)) {
+    state_variables_ = clone_sv;
+    std::cout << "ISNAN is found at stress particle " << this->id_ << std::endl;
+  } else
+    this->stress_ = new_stress;
 }
 
 //! Map body force
