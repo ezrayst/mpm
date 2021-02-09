@@ -243,6 +243,7 @@ void mpm::Particle<Tdim>::initialise() {
   strain_rate_.setZero();
   strain_.setZero();
   stress_.setZero();
+  stress_beginning_.setZero();
   traction_.setZero();
   velocity_.setZero();
   volume_ = std::numeric_limits<double>::max();
@@ -255,6 +256,9 @@ void mpm::Particle<Tdim>::initialise() {
   this->vector_properties_["displacements"] = [&]() { return displacement(); };
   this->vector_properties_["velocities"] = [&]() { return velocity(); };
   this->tensor_properties_["stresses"] = [&]() { return stress(); };
+  this->tensor_properties_["stresses_beginning"] = [&]() {
+    return stress_beginning();
+  };
   this->tensor_properties_["strains"] = [&]() { return strain(); };
 }
 

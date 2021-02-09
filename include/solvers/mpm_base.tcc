@@ -32,7 +32,8 @@ mpm::MPMBase<Tdim>::MPMBase(const std::shared_ptr<IO>& io) : mpm::MPM(io) {
       {"velocities", VariableType::Vector},
       // Tensor variables
       {"strains", VariableType::Tensor},
-      {"stresses", VariableType::Tensor}};
+      {"stresses", VariableType::Tensor},
+      {"stresses_beginning", VariableType::Tensor}};
 
   try {
     analysis_ = io_->analysis();
@@ -347,6 +348,9 @@ void mpm::MPMBase<Tdim>::initialise_particles() {
 
   // Read and assign particles stresses
   this->particles_stresses(mesh_props, particle_io);
+
+  // Read and assign particles beginning stresses
+  this->particles_stresses_beginning(mesh_props, particle_io);
 
   auto particles_volume_end = std::chrono::steady_clock::now();
   console_->info("Rank {} Read volume, velocity and stresses: {} ms", mpi_rank,
@@ -1080,6 +1084,36 @@ void mpm::MPMBase<Tdim>::particles_stresses(
 
   } catch (std::exception& exception) {
     console_->warn("#{}: Particle stresses are undefined {} ", __LINE__,
+                   exception.what());
+  }
+}
+
+// Particles beginning stresses
+template <unsigned Tdim>
+void mpm::MPMBase<Tdim>::particles_stresses_beginning(
+    const Json& mesh_props,
+    const std::shared_ptr<mpm::IOMesh<Tdim>>& particle_io) {
+  try {
+    if (mesh_props.find("particles_stresses_beginning") != mesh_props.end()) {
+      std::string fparticles_stresses =
+          mesh_props["particles_stresses_beginning"].template get<std::string>();
+      if (!io_->file_name(fparticles_stresses).empty()) {
+
+        // Get stresses of all particles
+        const auto all_particles_stresses =
+            particle_io->read_particles_stresses(
+                io_->file_name(fparticles_stresses));
+
+        // Read and assign particles stresses
+        if (!mesh_->assign_particles_stresses_beginning(all_particles_stresses))
+          throw std::runtime_error(
+              "Particles beginning stresses are not properly assigned");
+      }
+    } else
+      throw std::runtime_error("Particle beginning stresses JSON not found");
+
+  } catch (std::exception& exception) {
+    console_->warn("#{}: Particle beginning stresses are undefined {} ", __LINE__,
                    exception.what());
   }
 }
