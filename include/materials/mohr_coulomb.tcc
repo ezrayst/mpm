@@ -51,6 +51,9 @@ mpm::MohrCoulomb<Tdim>::MohrCoulomb(unsigned id,
     // Tensile strength
     tension_cutoff_ =
         material_properties.at("tension_cutoff").template get<double>();
+    // Su_over_p status
+    su_over_p_bool_ =
+        material_properties.at("su_over_p_bool").template get<bool>();
     // Properties
     properties_ = material_properties;
     // Bulk modulus
@@ -350,6 +353,7 @@ Eigen::Matrix<double, 6, 1> mpm::MohrCoulomb<Tdim>::compute_stress(
       -(stress_beginning(0) + stress_beginning(1) + stress_beginning(2)) / 3.0;
 
   // Compute cohesion from su/p
+
   double cohesion_residual_ = su_over_pi_residual_ * p_beginning;
   double cohesion_peak_ = su_over_pi_peak_ * p_beginning;
 
