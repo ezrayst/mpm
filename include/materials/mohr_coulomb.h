@@ -115,12 +115,16 @@ class MohrCoulomb : public Material<Tdim> {
   double psi_peak_{std::numeric_limits<double>::max()};
   //! Maximum cohesion
   double cohesion_peak_{std::numeric_limits<double>::max()};
+  //! Maximum su_over_pi
+  double su_over_pi_peak_{std::numeric_limits<double>::max()};
   //! Residual friction angle phi
   double phi_residual_{std::numeric_limits<double>::max()};
   //! Residual dilation angle psi
   double psi_residual_{std::numeric_limits<double>::max()};
   //! Residual cohesion
   double cohesion_residual_{std::numeric_limits<double>::max()};
+  //! Maximum su_over_pi
+  double su_over_pi_residual_{std::numeric_limits<double>::max()};
   //! Peak plastic deviatoric strain
   double pdstrain_peak_{std::numeric_limits<double>::max()};
   //! Residual plastic deviatoric strain

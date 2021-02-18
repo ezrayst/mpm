@@ -16,20 +16,32 @@ mpm::MohrCoulomb<Tdim>::MohrCoulomb(unsigned id,
     // Softening status
     softening_ = material_properties.at("softening").template get<bool>();
     // Peak friction, dilation and cohesion
-    phi_peak_ =
-        material_properties.at("friction").template get<double>() * M_PI / 180.;
-    psi_peak_ =
-        material_properties.at("dilation").template get<double>() * M_PI / 180.;
-    cohesion_peak_ = material_properties.at("cohesion").template get<double>();
+    // phi_peak_ =
+    //     material_properties.at("friction").template get<double>() * M_PI /
+    //     180.;
+    // psi_peak_ =
+    //     material_properties.at("dilation").template get<double>() * M_PI /
+    //     180.;
+    // Peak su/pi
+    // cohesion_peak_ = material_properties.at("cohesion").template
+    // get<double>();
+    phi_peak_ = 0 * M_PI / 180.;
+    psi_peak_ = 0 * M_PI / 180.;
+    su_over_pi_peak_ =
+        material_properties.at("su_over_p_peak").template get<double>();
     // Residual friction, dilation and cohesion
-    phi_residual_ =
-        material_properties.at("residual_friction").template get<double>() *
-        M_PI / 180.;
-    psi_residual_ =
-        material_properties.at("residual_dilation").template get<double>() *
-        M_PI / 180.;
-    cohesion_residual_ =
-        material_properties.at("residual_cohesion").template get<double>();
+    // phi_residual_ =
+    //     material_properties.at("residual_friction").template get<double>() *
+    //     M_PI / 180.;
+    // psi_residual_ =
+    //     material_properties.at("residual_dilation").template get<double>() *
+    //     M_PI / 180.;
+    // cohesion_residual_ =
+    //     material_properties.at("residual_cohesion").template get<double>();
+    phi_residual_ = 0 * M_PI / 180.;
+    psi_residual_ = 0 * M_PI / 180.;
+    su_over_pi_residual_ =
+        material_properties.at("su_over_p_residual").template get<double>();
     // Peak plastic deviatoric strain
     pdstrain_peak_ =
         material_properties.at("peak_pdstrain").template get<double>();
@@ -331,6 +343,16 @@ Eigen::Matrix<double, 6, 1> mpm::MohrCoulomb<Tdim>::compute_stress(
     const ParticleBase<Tdim>* ptr, mpm::dense_map* state_vars) {
   // Get equivalent plastic deviatoric strain
   const double pdstrain = (*state_vars).at("pdstrain");
+
+  // Get stress beginning and compute p_beginning (compression positive)
+  const auto stress_beginning = ptr->stress_beginning();
+  double p_beginning =
+      -(stress_beginning(0) + stress_beginning(1) + stress_beginning(2)) / 3.0;
+
+  // Compute cohesion from su/p
+  double cohesion_residual_ = su_over_pi_residual_ * p_beginning;
+  double cohesion_peak_ = su_over_pi_peak_ * p_beginning;
+
   // Update MC parameters using a linear softening rule
   if (softening_ && pdstrain > pdstrain_peak_) {
     if (pdstrain < pdstrain_residual_) {
