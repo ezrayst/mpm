@@ -15,6 +15,11 @@ mpm::MohrCoulomb<Tdim>::MohrCoulomb(unsigned id,
         material_properties.at("poisson_ratio").template get<double>();
     // Softening status
     softening_ = material_properties.at("softening").template get<bool>();
+    // SPT-N Bool
+    sptn_bool_ = material_properties.at("spt_n_bool").template get<bool>();
+    // SPT-N
+    if (sptn_bool_)
+      sptn_ = material_properties.at("spt_n").template get<double>();
     // Peak friction, dilation and cohesion
     // phi_peak_ =
     //     material_properties.at("friction").template get<double>() * M_PI /
@@ -22,9 +27,8 @@ mpm::MohrCoulomb<Tdim>::MohrCoulomb(unsigned id,
     // psi_peak_ =
     //     material_properties.at("dilation").template get<double>() * M_PI /
     //     180.;
+    cohesion_peak_ = material_properties.at("cohesion").template get<double>();
     // Peak su/pi
-    // cohesion_peak_ = material_properties.at("cohesion").template
-    // get<double>();
     phi_peak_ = 0 * M_PI / 180.;
     psi_peak_ = 0 * M_PI / 180.;
     su_over_pi_peak_ =
@@ -36,8 +40,8 @@ mpm::MohrCoulomb<Tdim>::MohrCoulomb(unsigned id,
     // psi_residual_ =
     //     material_properties.at("residual_dilation").template get<double>() *
     //     M_PI / 180.;
-    // cohesion_residual_ =
-    //     material_properties.at("residual_cohesion").template get<double>();
+    cohesion_residual_ =
+        material_properties.at("residual_cohesion").template get<double>();
     phi_residual_ = 0 * M_PI / 180.;
     psi_residual_ = 0 * M_PI / 180.;
     su_over_pi_residual_ =
@@ -351,11 +355,23 @@ Eigen::Matrix<double, 6, 1> mpm::MohrCoulomb<Tdim>::compute_stress(
   const auto stress_beginning = ptr->stress_beginning();
   double p_beginning =
       -(stress_beginning(0) + stress_beginning(1) + stress_beginning(2)) / 3.0;
+  double sigma_v_beginning = -stress_beginning(1);
 
   // Compute cohesion from su/p
+  if (su_over_p_bool_) {
+    cohesion_residual_ = su_over_pi_residual_ * p_beginning;
+    cohesion_peak_ = su_over_pi_peak_ * p_beginning;
+  } else if (sptn_bool_) {
+    // Weber 2015
+    cohesion_residual_ =
+        std::exp(0.1407 * sptn_ + 4.2399 * std::pow(sigma_v_beginning, 0.12)) -
+        0.43991 * (std::pow(sptn_, 1.45) +
+                   0.2 * sptn_ * std::pow(sigma_v_beginning, 2.48) + 41.13);
+    cohesion_peak_ = cohesion_residual_;
+  }
 
-  double cohesion_residual_ = su_over_pi_residual_ * p_beginning;
-  double cohesion_peak_ = su_over_pi_peak_ * p_beginning;
+  // Update state_vars cohesion
+  (*state_vars).at("cohesion") = cohesion_peak_;
 
   // Update MC parameters using a linear softening rule
   if (softening_ && pdstrain > pdstrain_peak_) {

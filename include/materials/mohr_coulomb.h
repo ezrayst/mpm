@@ -129,6 +129,10 @@ class MohrCoulomb : public Material<Tdim> {
   double pdstrain_peak_{std::numeric_limits<double>::max()};
   //! su_over_p_bool
   bool su_over_p_bool_{false};
+  //! SPT-N
+  double sptn_{std::numeric_limits<double>::max()};
+  //! SPT-N bool
+  bool sptn_bool_{false};
   //! Residual plastic deviatoric strain
   double pdstrain_residual_{std::numeric_limits<double>::max()};
   //! Tension cutoff
