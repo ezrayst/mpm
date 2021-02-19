@@ -355,18 +355,19 @@ Eigen::Matrix<double, 6, 1> mpm::MohrCoulomb<Tdim>::compute_stress(
   const auto stress_beginning = ptr->stress_beginning();
   double p_beginning =
       -(stress_beginning(0) + stress_beginning(1) + stress_beginning(2)) / 3.0;
-  double sigma_v_beginning = -stress_beginning(1);
+  double sigma_v_beginning = -stress_beginning(1) / 101000;  // in atm
 
   // Compute cohesion from su/p
   if (su_over_p_bool_) {
     cohesion_residual_ = su_over_pi_residual_ * p_beginning;
     cohesion_peak_ = su_over_pi_peak_ * p_beginning;
   } else if (sptn_bool_) {
-    // Weber 2015
+    // Weber 2015, change it to Pa
     cohesion_residual_ =
-        std::exp(0.1407 * sptn_ + 4.2399 * std::pow(sigma_v_beginning, 0.12)) -
-        0.43991 * (std::pow(sptn_, 1.45) +
-                   0.2 * sptn_ * std::pow(sigma_v_beginning, 2.48) + 41.13);
+        (std::exp(0.1407 * sptn_ + 4.2399 * std::pow(sigma_v_beginning, 0.12)) -
+         0.43991 * (std::pow(sptn_, 1.45) +
+                    0.2 * sptn_ * std::pow(sigma_v_beginning, 2.48) + 41.13)) *
+        47.880208;
     cohesion_peak_ = cohesion_residual_;
   }
 
