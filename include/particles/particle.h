@@ -323,6 +323,32 @@ class Particle : public ParticleBase<Tdim> {
       const std::vector<uint8_t>& buffer,
       std::vector<std::shared_ptr<mpm::Material<Tdim>>>& materials) override;
 
+  //! Return the approximate particle diameter
+  double diameter() const override {
+    return 0.5 * cell_->mean_length();
+    // if (Tdim == 2) return 2.0 * std::sqrt(volume_ / M_PI);
+    // if (Tdim == 3) return 2.0 * std::pow(volume_ * 0.75 / M_PI, (1 / 3));
+  }
+
+  double max_cell_length() const override { return cell_->max_length(); }
+
+  //! Assign free surface
+  void assign_free_surface(bool free_surface) override {
+    free_surface_ = free_surface;
+  };
+
+  //! Return free surface bool
+  bool free_surface() override { return free_surface_; };
+
+  //! Compute free surface
+  bool compute_free_surface() override;
+
+  //! Assign normal vector
+  void assign_normal(const VectorDim& normal) override { normal_ = normal; };
+
+  //! Return normal vector
+  VectorDim normal() override { return normal_; };
+
  protected:
   //! Initialise particle material container
   //! \details This function allocate memory and initialise the material related
@@ -418,6 +444,10 @@ class Particle : public ParticleBase<Tdim> {
       tensor_properties_;
   //! Pack size
   unsigned pack_size_{0};
+  //! Free surface
+  bool free_surface_{false};
+  //! Free surface
+  Eigen::Matrix<double, Tdim, 1> normal_;
 
 };  // Particle class
 }  // namespace mpm

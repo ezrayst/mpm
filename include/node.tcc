@@ -34,6 +34,8 @@ void mpm::Node<Tdim, Tdof, Tnphases>::initialise() noexcept {
   acceleration_.setZero();
   status_ = false;
   material_ids_.clear();
+  normal_.setZero();
+  signed_distance_ = std::numeric_limits<double>::max();
 }
 
 //! Initialise shared pointer to nodal properties pool
@@ -629,5 +631,51 @@ void mpm::Node<Tdim, Tdof,
     property_handle_->assign_property("normal_unit_vectors", prop_id_, *mitr,
                                       normal_unit_vector, Tdim);
   }
+  node_mutex_.unlock();
+}
+
+//! Compute mass density (Z. Wiezckowski, 2004)
+//! density = mass / lumped volume
+template <unsigned Tdim, unsigned Tdof, unsigned Tnphases>
+void mpm::Node<Tdim, Tdof, Tnphases>::compute_density() {
+  const double tolerance = 1.E-16;  // std::numeric_limits<double>::lowest();
+
+  for (unsigned phase = 0; phase < Tnphases; ++phase) {
+    if (std::abs(mass_(phase)) > tolerance) {
+      if (std::abs(volume_(phase)) > tolerance)
+        density_(phase) = mass_(phase) / volume_(phase);
+
+      // Check to see if value is below threshold
+      if (std::abs(density_(phase)) < 1.E-15) density_(phase) = 0.;
+
+    } else
+      throw std::runtime_error(
+          "Nodal mass is zero or below threshold 3: MASS: " +
+          std::to_string(mass_(phase)) +
+          "\nNODE_ID: " + std::to_string(this->id()) + "\nNODE_COORD: {" +
+          std::to_string(this->coordinates()[0]) + ", " +
+          std::to_string(this->coordinates()[1]) + "}");
+  }
+}
+
+//! Compute normal
+template <unsigned Tdim, unsigned Tdof, unsigned Tnphases>
+void mpm::Node<Tdim, Tdof, Tnphases>::compute_normal() {
+  if (normal_.norm() > std::numeric_limits<double>::epsilon())
+    normal_.normalize();
+  else
+    normal_.setZero();
+}
+
+//! Assign nodal normal vector
+template <unsigned Tdim, unsigned Tdof, unsigned Tnphases>
+void mpm::Node<Tdim, Tdof, Tnphases>::update_normal(
+    bool update, const Eigen::Matrix<double, Tdim, 1>& normal) noexcept {
+  // Decide to update or assign
+  const double factor = (update == true) ? 1. : 0.;
+
+  // Update/assign normal
+  node_mutex_.lock();
+  normal_ = normal_ * factor + normal;
   node_mutex_.unlock();
 }

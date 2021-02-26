@@ -264,6 +264,37 @@ class Node : public NodeBase<Tdim> {
   //! Compute multimaterial normal unit vector
   void compute_multimaterial_normal_unit_vector() override;
 
+  //! Return real density at a given node for a given phase
+  //! \param[in] phase Index corresponding to the phase
+  double density(unsigned phase) override { return density_(phase); }
+
+  //! Compute nodal density
+  void compute_density() override;
+
+  //! Assign free surface
+  void assign_free_surface(bool free_surface) override {
+    free_surface_ = free_surface;
+  }
+
+  //! Return free surface bool
+  bool free_surface() override { return free_surface_; }
+
+  //! Assign signed distance
+  void assign_signed_distance(double signed_distance) override {
+    signed_distance_ = signed_distance;
+  }
+
+  //! Return signed distance
+  double signed_distance() override { return signed_distance_; }
+
+  //! Update nodal normal
+  //! \param[in] update A boolean to update (true) or assign (false)
+  //! \param[in] normal Normal vector from the particles in a cell
+  void update_normal(bool update, const VectorDim& normal) noexcept override;
+
+  //! Compute nodal normal
+  void compute_normal() override;
+
  private:
   //! Mutex
   SpinMutex node_mutex_;
@@ -319,6 +350,15 @@ class Node : public NodeBase<Tdim> {
   std::unique_ptr<spdlog::logger> console_;
   //! MPI ranks
   std::set<unsigned> mpi_ranks_;
+  //! Interpolated density
+  Eigen::Matrix<double, 1, Tnphases> density_;
+  //! Free surface
+  bool free_surface_{false};
+  //! Signed distance
+  double signed_distance_{std::numeric_limits<double>::max()};
+  //! Normal vector
+  Eigen::Matrix<double, Tdim, 1> normal_;
+  
 };  // Node class
 }  // namespace mpm
 

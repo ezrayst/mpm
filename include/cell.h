@@ -166,6 +166,9 @@ class Cell {
   //! Return the mean_length
   double mean_length() const { return mean_length_; }
 
+  //! Return the max_length
+  double max_length() const { return max_length_; }
+
   //! Return nodal coordinates
   Eigen::MatrixXd nodal_coordinates() const { return nodal_coordinates_; }
 
@@ -217,6 +220,28 @@ class Cell {
   //! Return previous mpi rank
   unsigned previous_mpirank() const;
 
+  //! Assign free surface
+  //! \param[in] free_surface boolean indicating free surface cell
+  void assign_free_surface(bool free_surface) { free_surface_ = free_surface; };
+
+  //! Return free surface bool
+  //! \retval free_surface_ indicating free surface cell
+  bool free_surface() { return free_surface_; };
+
+  //! Assign volume traction to node
+  //! \param[in] volume_fraction cell volume fraction
+  void assign_volume_fraction(double volume_fraction) {
+    volume_fraction_ = volume_fraction;
+  };
+
+  //! Return cell volume fraction
+  //! \retval volume_fraction_ cell volume fraction
+  double volume_fraction() { return volume_fraction_; };
+
+  //! Map cell volume to the nodes
+  //! \param[in] phase to map volume
+  bool map_cell_volume_to_nodes(unsigned phase);
+
  private:
   //! Approximately check if a point is in a cell
   //! \param[in] point Coordinates of point
@@ -241,6 +266,8 @@ class Cell {
   VectorDim centroid_;
   //! mean_length of cell
   double mean_length_{std::numeric_limits<double>::max()};
+  //! mean_length of cell
+  double max_length_{std::numeric_limits<double>::max()};
   //! particles ids in cell
   std::vector<Index> particles_;
   //! Number of global nparticles
@@ -266,6 +293,13 @@ class Cell {
   std::map<unsigned, Eigen::VectorXd> face_normals_;
   //! Logger
   std::unique_ptr<spdlog::logger> console_;
+  //! Boundary particles that correspond to each edge of the boundary
+  std::map<unsigned, std::vector<Index>> boundary_edge_particles_;
+  //! Free surface bool
+  bool free_surface_{false};
+  //! Volume fraction
+  double volume_fraction_{0.0};
+
 };  // Cell class
 }  // namespace mpm
 

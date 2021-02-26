@@ -321,6 +321,25 @@ class ParticleBase {
       const std::vector<uint8_t>& buffer,
       std::vector<std::shared_ptr<mpm::Material<Tdim>>>& materials) = 0;
 
+  virtual double diameter() const = 0;
+
+  virtual double max_cell_length() const = 0;
+
+  //! Assign particle free surface
+  virtual void assign_free_surface(bool free_surface) = 0;
+
+  //! Assign particle free surface
+  virtual bool free_surface() = 0;
+
+  //! Compute free surface
+  virtual bool compute_free_surface() = 0;
+
+  //! Assign normal vector
+  virtual void assign_normal(const VectorDim& normal) = 0;
+
+  //! Return normal vector
+  virtual VectorDim normal() = 0;
+
  protected:
   //! particleBase id
   Index id_{std::numeric_limits<Index>::max()};

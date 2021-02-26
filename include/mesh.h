@@ -42,6 +42,7 @@ using Json = nlohmann::json;
 #include "traction.h"
 #include "vector.h"
 #include "velocity_constraint.h"
+#include "functions/radian_basis_function.h"
 
 namespace mpm {
 
@@ -470,6 +471,10 @@ class Mesh {
   // Initialise the nodal properties' map
   void initialise_nodal_properties();
 
+  //! Compute free surface
+  bool compute_free_surface(
+      double tolerance = std::numeric_limits<unsigned>::epsilon());
+
  private:
   // Read particles from file
   //! \param[in] pset_id Set ID of the particles
@@ -479,6 +484,12 @@ class Mesh {
   // Locate a particle in mesh cells
   bool locate_particle_cells(
       const std::shared_ptr<mpm::ParticleBase<Tdim>>& particle);
+
+  //! Iterate over particles with predicate
+  //! \tparam Toper Callable object typically a baseclass functor
+  //! \tparam Tpred Predicate
+  template <typename Toper, typename Tpred>
+  void iterate_over_particles_predicate(Toper oper, Tpred pred);
 
  private:
   //! mesh id
@@ -538,6 +549,7 @@ class Mesh {
   unsigned nhalo_nodes_{0};
   //! Maximum number of halo nodes
   unsigned ncomms_{0};
+
 };  // Mesh class
 }  // namespace mpm
 

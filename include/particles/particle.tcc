@@ -255,6 +255,7 @@ void mpm::Particle<Tdim>::initialise() {
   this->scalar_properties_["mass_density"] = [&]() { return mass_density(); };
   this->vector_properties_["displacements"] = [&]() { return displacement(); };
   this->vector_properties_["velocities"] = [&]() { return velocity(); };
+  this->vector_properties_["normals"] = [&]() { return normal(); };
   this->tensor_properties_["stresses"] = [&]() { return stress(); };
   this->tensor_properties_["stresses_beginning"] = [&]() {
     return stress_beginning();
@@ -1164,3 +1165,22 @@ void mpm::Particle<Tdim>::deserialize(
 
 #endif
 }
+
+//! Compute free surface
+template <unsigned Tdim>
+bool mpm::Particle<Tdim>::compute_free_surface() {
+  bool status = false;
+  // Check if particle has a valid cell ptr
+  if (cell_ != nullptr) {
+    // Simple approach of density comparison (Hamad, 2015)
+    // Get interpolated nodal density
+    double nodal_mass_density = 0;
+    for (unsigned i = 0; i < nodes_.size(); ++i)
+      nodal_mass_density +=
+          shapefn_[i] * nodes_[i]->density(mpm::ParticlePhase::Solid);
+
+    // Compare smoothen density to actual particle mass density
+    if ((nodal_mass_density / mass_density_) <= 0.70) status = true;
+  }
+  return status;
+};

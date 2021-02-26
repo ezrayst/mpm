@@ -25,10 +25,13 @@ mpm::LinearElastic<Tdim>::LinearElastic(unsigned id,
 template <unsigned Tdim>
 bool mpm::LinearElastic<Tdim>::compute_elastic_tensor() {
   // Shear modulus
-  const double G = youngs_modulus_ / (2.0 * (1. + poisson_ratio_));
+  double G = youngs_modulus_ / (2.0 * (1. + poisson_ratio_));
 
   const double a1 = bulk_modulus_ + (4.0 / 3.0) * G;
   const double a2 = bulk_modulus_ - (2.0 / 3.0) * G;
+
+  // Reduce G
+  G = G / 1000;
 
   // clang-format off
   // compute elasticityTensor

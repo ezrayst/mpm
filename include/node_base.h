@@ -253,6 +253,33 @@ class NodeBase {
   //! Compute multimaterial normal unit vector
   virtual void compute_multimaterial_normal_unit_vector() = 0;
 
+  //! Return real density at a given node for a given phase
+  //! \param[in] phase Index corresponding to the phase
+  virtual double density(unsigned phase) = 0;
+
+  //! Compute nodal density
+  virtual void compute_density() = 0;
+
+  //! Assign free surface
+  virtual void assign_free_surface(bool free_surface) = 0;
+
+  //! Return free surface bool
+  virtual bool free_surface() = 0;
+
+  //! Assign signed distance
+  virtual void assign_signed_distance(double signed_distance) = 0;
+
+  //! Return signed distance
+  virtual double signed_distance() = 0;
+
+  //! Update nodal normal
+  //! \param[in] update A boolean to update (true) or assign (false)
+  //! \param[in] normal Normal vector from the particles in a cell
+  virtual void update_normal(bool update, const VectorDim& normal) noexcept = 0;
+
+  //! Compute nodal normal
+  virtual void compute_normal() = 0;
+
 };  // NodeBase class
 }  // namespace mpm
 
