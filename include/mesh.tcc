@@ -2093,42 +2093,42 @@ bool mpm::Mesh<Tdim>::compute_free_surface(double tolerance) {
       // Cell contains particles
       if ((*citr)->status()) {
         bool candidate_cell = false;
-        const auto& node_id = (*citr)->nodes_id();
-        if ((*citr)->volume_fraction() < tolerance) {
-          candidate_cell = true;
-          for (const auto id : node_id) {
-            map_nodes_[id]->assign_free_surface(true);
-          }
-        } else {
+        // const auto& node_id = (*citr)->nodes_id();
+        // if ((*citr)->volume_fraction() < tolerance) {
+        //   candidate_cell = true;
+        //   for (const auto id : node_id) {
+        //     map_nodes_[id]->assign_free_surface(true);
+        //   }
+        // } else {
         // Loop over neighbouring cells
         for (const auto n_id : (*citr)->neighbours()) {
           if (!map_cells_[n_id]->status()) {
             candidate_cell = true;
-            const auto& n_node_id = map_cells_[n_id]->nodes_id();
+            // const auto& n_node_id = map_cells_[n_id]->nodes_id();
 
             // Detect common node id
-            std::set<mpm::Index> common_node_id;
-            std::set_intersection(
-                node_id.begin(), node_id.end(), n_node_id.begin(),
-                n_node_id.end(),
-                std::inserter(common_node_id, common_node_id.begin()));
+            // std::set<mpm::Index> common_node_id;
+            // std::set_intersection(
+            //     node_id.begin(), node_id.end(), n_node_id.begin(),
+            //     n_node_id.end(),
+            //     std::inserter(common_node_id, common_node_id.begin()));
 
             // Assign free surface nodes
-            if (!common_node_id.empty()) {
-              for (const auto common_id : common_node_id) {
-                map_nodes_[common_id]->assign_free_surface(true);
-              }
-            }
+            // if (!common_node_id.empty()) {
+            //   for (const auto common_id : common_node_id) {
+            //     map_nodes_[common_id]->assign_free_surface(true);
+            //   }
+            // }
           }
         }
-      } 
+        // }
 
         // Assign free surface cell
         if (candidate_cell) {
           (*citr)->assign_free_surface(true);
           free_surface_candidate_cells.insert((*citr)->id());
-          free_surface_candidate_nodes.insert(node_id.begin(),
-          node_id.end());
+          // free_surface_candidate_nodes.insert(node_id.begin(),
+          // node_id.end());
         }
       }
     }
@@ -2235,7 +2235,7 @@ bool mpm::Mesh<Tdim>::compute_free_surface(double tolerance) {
       if (secondary_check) {
         // Construct scanning region
         // TODO: spacing distance should be a function of porosity
-        const double spacing_distance = smoothing_length;
+        const double spacing_distance = 2 * smoothing_length;
         VectorDim t_coord = p_coord + spacing_distance * normal;
 
         // Check all neighbours
