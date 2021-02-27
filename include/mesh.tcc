@@ -2264,7 +2264,7 @@ bool mpm::Mesh<Tdim>::compute_free_surface(double tolerance) {
       // Check radius from center
       double x_axis = p_coord(0);
       double y_axis = p_coord(1);
-      water_pressure = (339 - y_axis) * 1000 * 9.81
+      water_pressure = (339 - y_axis) * 1000 * 9.81;
       // if (x_axis > -25) free_surface = false;
       if (x_axis > -25 || y_axis > 339) free_surface = false;
 
@@ -2276,8 +2276,8 @@ bool mpm::Mesh<Tdim>::compute_free_surface(double tolerance) {
         free_surface_particles.insert(p_id);
 
         // add traction
-        particle->assign_traction(0, -normal(0) * water_pressure)
-        particle->assign_traction(1, -normal(1) * water_pressure)
+        particle->assign_traction(0, -normal(0) * water_pressure);
+        particle->assign_traction(1, -normal(1) * water_pressure);
       }
     }
 
