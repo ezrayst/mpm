@@ -2278,6 +2278,9 @@ bool mpm::Mesh<Tdim>::compute_free_surface(double tolerance) {
         // add traction
         particle->assign_traction(0, -normal(0) * water_pressure);
         particle->assign_traction(1, -normal(1) * water_pressure);
+
+        // apply to external force to node
+        particle->map_traction_force();
       }
     }
 
