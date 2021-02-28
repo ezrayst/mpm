@@ -2266,7 +2266,7 @@ bool mpm::Mesh<Tdim>::compute_free_surface(double tolerance) {
       double y_axis = p_coord(1);
       double water_pressure = (339 - y_axis) * 1000 * 9.81;
       // if (x_axis > -25) free_surface = false;
-      if (x_axis > -25 || y_axis > 339 || normal(1) < 0) free_surface = false;
+      if (x_axis > 0 || y_axis > 339 || normal(1) < 0) free_surface = false;
 
       // Assign normal only to validated free surface
       if (free_surface) {
