@@ -113,6 +113,8 @@ class MohrCoulomb : public Material<Tdim> {
   double phi_peak_{std::numeric_limits<double>::max()};
   //! Maximum dilation angle psi
   double psi_peak_{std::numeric_limits<double>::max()};
+  //! Undrained friction angle from drained strength
+  double phi_undrained_{std::numeric_limits<double>::max()};
   //! Maximum cohesion
   double cohesion_peak_{std::numeric_limits<double>::max()};
   //! Maximum su_over_pi
