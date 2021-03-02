@@ -21,9 +21,9 @@ mpm::MohrCoulomb<Tdim>::MohrCoulomb(unsigned id,
     if (sptn_bool_)
       sptn_ = material_properties.at("spt_n").template get<double>();
     // Peak friction, dilation and cohesion
-    // phi_peak_ =
-    //     material_properties.at("friction").template get<double>() * M_PI /
-    //     180.;
+    phi_peak_ =
+        material_properties.at("friction").template get<double>() * M_PI /
+        180.;
     // psi_peak_ =
     //     material_properties.at("dilation").template get<double>() * M_PI /
     //     180.;
@@ -34,9 +34,9 @@ mpm::MohrCoulomb<Tdim>::MohrCoulomb(unsigned id,
     su_over_pi_peak_ =
         material_properties.at("su_over_p_peak").template get<double>();
     // Residual friction, dilation and cohesion
-    // phi_residual_ =
-    //     material_properties.at("residual_friction").template get<double>() *
-    //     M_PI / 180.;
+    phi_residual_ =
+        material_properties.at("residual_friction").template get<double>() *
+        M_PI / 180.;
     // psi_residual_ =
     //     material_properties.at("residual_dilation").template get<double>() *
     //     M_PI / 180.;
@@ -373,6 +373,7 @@ Eigen::Matrix<double, 6, 1> mpm::MohrCoulomb<Tdim>::compute_stress(
     // Undrained shear strength at initial stresses
     double undrained_strength = sigma_v_beginning * 101000 * tan(phi_peak_) + cohesion_peak_;
     cohesion_peak_ = undrained_strength; 
+    cohesion_residual_ = cohesion_peak_;
   }
 
   // Update state_vars cohesion
