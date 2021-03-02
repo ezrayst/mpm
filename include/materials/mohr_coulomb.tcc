@@ -374,7 +374,7 @@ Eigen::Matrix<double, 6, 1> mpm::MohrCoulomb<Tdim>::compute_stress(
     cohesion_peak_ = cohesion_residual_;
   } else {
     // Undrained shear strength at initial stresses
-    double undrained_strength = -stress_beginning(1) * tan(phi_undrained_) + cohesion_peak_;
+    double undrained_strength = -stress_beginning(1) * tan(phi_undrained_);
     cohesion_peak_ = undrained_strength; 
     cohesion_residual_ = cohesion_peak_;
   }
