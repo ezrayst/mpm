@@ -134,7 +134,7 @@ bool mpm::MPMExplicit<Tdim>::solve() {
 
     // Compute free_surface for water on the left side 
     const double volume_tolerance = 0.25;
-    mesh_->compute_free_surface(volume_tolerance);
+    // mesh_->compute_free_surface(volume_tolerance);
 
     // Mass momentum and compute velocity at nodes
     mpm_scheme_->compute_nodal_kinematics(phase);

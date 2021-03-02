@@ -369,6 +369,10 @@ Eigen::Matrix<double, 6, 1> mpm::MohrCoulomb<Tdim>::compute_stress(
                     0.2 * sptn_ * std::pow(sigma_v_beginning, 2.48) + 41.13)) *
         47.880208;
     cohesion_peak_ = cohesion_residual_;
+  } else {
+    // Undrained shear strength at initial stresses
+    double undrained_strength = sigma_v_beginning * 101000 * tan(phi_peak_) + cohesion_peak_;
+    cohesion_peak_ = undrained_strength; 
   }
 
   // Update state_vars cohesion
