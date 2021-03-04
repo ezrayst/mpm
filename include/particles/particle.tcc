@@ -455,6 +455,13 @@ void mpm::Particle<Tdim>::compute_shapefn() noexcept {
   // Compute dN/dx
   dn_dx_ = element->dn_dx(this->xi_, cell_->nodal_coordinates(),
                           this->natural_size_, zero);
+
+  // Compute bmatrix_
+  bmatrix_ = element->bmatrix(this->xi_, cell_->nodal_coordinates(),
+                          this->natural_size_, zero);
+  // Get B-Matrix at the centroid
+  bmatrix_centroid_ =
+          element->bmatrix(zero, cell_->nodal_coordinates(), zero, zero);
 }
 
 // Assign volume to the particle
@@ -610,11 +617,60 @@ inline Eigen::Matrix<double, 6, 1> mpm::Particle<2>::compute_strain_rate(
   // Define strain rate
   Eigen::Matrix<double, 6, 1> strain_rate = Eigen::Matrix<double, 6, 1>::Zero();
 
-  for (unsigned i = 0; i < this->nodes_.size(); ++i) {
-    Eigen::Matrix<double, 2, 1> vel = nodes_[i]->velocity(phase);
-    strain_rate[0] += dn_dx(i, 0) * vel[0];
-    strain_rate[1] += dn_dx(i, 1) * vel[1];
-    strain_rate[3] += dn_dx(i, 1) * vel[0] + dn_dx(i, 0) * vel[1];
+  // bbar true
+  if (true) {
+
+    // Compute BBAR
+    // Compute volumetric Bmatrix
+    std::vector<Eigen::MatrixXd> bmatrix_vol;
+    for (unsigned i = 0; i < this->nodes_.size(); ++i) {
+      Eigen::Matrix<double, 3, 2> bvoli;
+      bvoli.setZero();
+      for (unsigned j = 0; j < 2; ++j) {
+        for (unsigned k = 0; k < 2; ++k)
+          bvoli(j, k) = 1. / 3. * bmatrix_.at(i)(k, k);
+      }
+      bmatrix_vol.push_back(bvoli);
+    }   
+    // Compute deviatoric Bmatrix
+    std::vector<Eigen::MatrixXd> bmatrix_dev;
+    for (unsigned i = 0; i < this->nodes_.size(); ++i) {
+      Eigen::Matrix<double, 3, 2> bdevi = bmatrix_.at(i) - bmatrix_vol.at(i);
+      bmatrix_dev.push_back(bdevi);
+    }   
+    // Compute volumetric Bmatrix at centroid
+    std::vector<Eigen::MatrixXd> bmatrix_centroid_vol;
+    for (unsigned i = 0; i < this->nodes_.size(); ++i) {
+      Eigen::Matrix<double, 3, 2> bvolcentroidi;
+      bvolcentroidi.setZero();
+      for (unsigned j = 0; j < 2; ++j) {
+        for (unsigned k = 0; k < 2; ++k)
+          bvolcentroidi(j, k) = 1. / 3. * bmatrix_centroid_.at(i)(k, k);
+      }
+      bmatrix_centroid_vol.push_back(bvolcentroidi);
+    }   
+    // Compute BBar
+    std::vector<Eigen::MatrixXd> bbar_matrix;
+    for (unsigned i = 0; i < this->nodes_.size(); ++i) {
+      Eigen::Matrix<double, 3, 2> bbari =
+          bmatrix_dev.at(i) + bmatrix_centroid_vol.at(i);
+      bbar_matrix.push_back(bbari);
+    }
+
+    // Compute strain rate
+    for (unsigned i = 0; i < this->nodes_.size(); ++i)
+      strain_rate += bbar_matrix.at(i) * nodes_[i]->velocity(phase);
+    strain_rate[2] = 0;
+    strain_rate[4] = 0;
+    strain_rate[5] = 0;
+
+  } else {
+    for (unsigned i = 0; i < this->nodes_.size(); ++i) {
+      Eigen::Matrix<double, 2, 1> vel = nodes_[i]->velocity(phase);
+      strain_rate[0] += dn_dx(i, 0) * vel[0];
+      strain_rate[1] += dn_dx(i, 1) * vel[1];
+      strain_rate[3] += dn_dx(i, 1) * vel[0] + dn_dx(i, 0) * vel[1];
+    }
   }
 
   if (std::fabs(strain_rate[0]) < 1.E-15) strain_rate[0] = 0.;

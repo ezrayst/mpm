@@ -433,6 +433,10 @@ class Particle : public ParticleBase<Tdim> {
   Eigen::MatrixXd dn_dx_;
   //! dN/dX at cell centroid
   Eigen::MatrixXd dn_dx_centroid_;
+  //! bmatrix
+  std::vector<Eigen::MatrixXd> bmatrix_;
+  //! BMatrix centroid
+  std::vector<Eigen::MatrixXd> bmatrix_centroid_;
   //! Logger
   std::unique_ptr<spdlog::logger> console_;
   //! Map of scalar properties

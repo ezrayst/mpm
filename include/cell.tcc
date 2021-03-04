@@ -844,3 +844,4 @@ template <unsigned Tdim>
 inline unsigned mpm::Cell<Tdim>::previous_mpirank() const {
   return this->previous_mpirank_;
 }
+
